@@ -1,14 +1,3 @@
-<!-- LOVABLE:BEGIN -->
-> [!IMPORTANT]
-> This project is connected to [Lovable](https://lovable.dev). Avoid rewriting
-> published git history — force pushing, or rebasing/amending/squashing commits
-> that are already pushed — as it rewrites history on Lovable's side and the
-> user will likely lose their project history.
->
-> Commits you push to the connected branch sync back to Lovable and show up in
-> the editor, so keep the branch in a working state.
-<!-- LOVABLE:END -->
-
 ## Project rules
 - Professional statistics use the centralized src/content/statistics.ts source with nullable owner-confirmed values; viewport-triggered counters stay client-side and never infer achievements from catalogue data.
 - Site search indexes the owner-filtered catalogue, courses and public pages locally; VAT arithmetic uses only the visitor-entered rate, keeping estimates independent of unverified tax rules.
