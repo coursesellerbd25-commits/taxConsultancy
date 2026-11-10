@@ -23,13 +23,9 @@ export function Logo({ onClick }: { onClick?: () => void }) {
   const site = useSite();
   return (
     <Link to="/" className="flex items-center gap-2" onClick={onClick}>
-      <img 
-        src="/favicon-tax.ico"
-        alt="Tax Compass"
-        width={32}
-        height={31}
-        className="h-8 w-8 shrink-0 object-contain"
-      />
+      <span className="flex h-9 w-9 items-center justify-center rounded-sm bg-primary text-gold">
+        <span className="text-2xl font-bold leading-none">৳</span>
+      </span>
       <span className="leading-tight">
         <span className="block font-serif text-base font-semibold text-primary">{site.businessName}</span>
         <span className="hidden whitespace-nowrap text-[11px] uppercase tracking-widest text-muted-foreground sm:block xl:hidden 2xl:block">{site.tagline}</span>
