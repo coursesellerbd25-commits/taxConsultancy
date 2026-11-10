@@ -24,21 +24,12 @@ export function Logo({ onClick }: { onClick?: () => void }) {
   return (
     <Link to="/" className="flex items-center gap-2" onClick={onClick}>
       <span className="flex h-9 w-9 items-center justify-center rounded-sm bg-primary text-gold">
-        <svg
-          viewBox="0 0 24 24"
-          className="h-6 w-6"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          aria-hidden="true"
-        >
-          <path d="M6 5h13" />
-          <path d="M6 9h13" />
-          <path d="M9 5v14" />
-          <path d="M9 1218 7" />
-        </svg>
+        <img
+          src="./favicon-tax_processed.png"
+          alt="tax-compass"
+          height={32}
+          width={32}
+        />
       </span>
       <span className="leading-tight">
         <span className="block font-serif text-base font-semibold text-primary">{site.businessName}</span>
