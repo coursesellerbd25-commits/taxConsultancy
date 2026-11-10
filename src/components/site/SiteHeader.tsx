@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { ChevronDown, Compass, Menu, X } from "lucide-react";
+import { ChevronDown, Menu, X } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useSite } from "@/lib/site-data";
@@ -23,7 +23,11 @@ export function Logo({ onClick }: { onClick?: () => void }) {
   const site = useSite();
   return (
     <Link to="/" className="flex items-center gap-2" onClick={onClick}>
-      <span className="flex h-9 w-9 items-center justify-center rounded-sm bg-primary text-gold"><Compass className="h-5 w-5" aria-hidden /></span>
+      <img 
+        src="/favicon-tax.ico"
+        alt="Tax Compass"
+        className="h-9 w-9 object-contain"
+      />
       <span className="leading-tight">
         <span className="block font-serif text-base font-semibold text-primary">{site.businessName}</span>
         <span className="hidden whitespace-nowrap text-[11px] uppercase tracking-widest text-muted-foreground sm:block xl:hidden 2xl:block">{site.tagline}</span>
