@@ -26,7 +26,9 @@ export function Logo({ onClick }: { onClick?: () => void }) {
       <img 
         src="/favicon-tax.ico"
         alt="Tax Compass"
-        className="h-9 w-9 object-contain"
+        width={32}
+        height={31}
+        className="h-8 w-8 shrink-0 object-contain"
       />
       <span className="leading-tight">
         <span className="block font-serif text-base font-semibold text-primary">{site.businessName}</span>
