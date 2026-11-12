@@ -31,7 +31,7 @@ export function SiteSearch() {
         <div className="relative w-full sm:max-w-md" onBlur={(e) => { if (!e.currentTarget.contains(e.relatedTarget)) setOpen(false); }} onKeyDown={(e) => { if (e.key === "Escape") setOpen(false); }}>
           <div role="search" className="relative">
             <Search aria-hidden className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input aria-label="Search Tax Compass" aria-expanded={expanded} aria-controls={id} type="search" autoComplete="off" placeholder="Search services, courses & more…" value={query} onFocus={() => setOpen(true)} onChange={(e) => { setQuery(e.target.value); setOpen(true); }} className="bg-background pl-9 pr-10 [&::-webkit-search-cancel-button]:hidden" />
+            <Input aria-label="Search Corporate Tax Bangladesh" aria-expanded={expanded} aria-controls={id} type="search" autoComplete="off" placeholder="Search services, courses & more…" value={query} onFocus={() => setOpen(true)} onChange={(e) => { setQuery(e.target.value); setOpen(true); }} className="bg-background pl-9 pr-10 [&::-webkit-search-cancel-button]:hidden" />
             {query && <Button variant="ghost" size="icon" className="absolute right-0 top-0 h-9 w-9" aria-label="Clear search" onClick={() => { setQuery(""); setOpen(false); }}><X className="h-4 w-4" /></Button>}
           </div>
           {expanded && <div id={id} className="absolute right-0 top-full z-50 mt-2 max-h-[60vh] w-full overflow-y-auto rounded-md border bg-popover shadow-lg">

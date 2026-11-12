@@ -149,7 +149,7 @@ export const categories: Category[] = [
     documents: ["Brand name, logo or work samples", "Applicant details", "Description of goods/services or the work"],
     process: ["Initial consultation", "Search and assessment guidance", "Application documents prepared", "Filing support", "Follow-up on official queries"],
     faqs: [{ q: "Is this legal representation?", a: "No. This covers consultancy and documentation support. Representation before authorities or courts requires a qualified legal practitioner." }],
-    note: "Consultancy and documentation support only. Tax Compass is not a law firm and does not provide legal representation.",
+    note: "Consultancy and documentation support only. Corporate Tax Bangladesh is not a law firm and does not provide legal representation.",
     services: [
       s("trademark", "Trademark Registration Assistance", "Documentation support for trademark applications."),
       s("copyright", "Copyright Registration Guidance", "Guidance on copyright registration."),
@@ -221,7 +221,7 @@ export const categories: Category[] = [
     documents: ["Relevant agreements or correspondence", "Company documents", "Summary of the issue"],
     process: ["Initial consultation", "Review of documents", "Guidance or documentation prepared", "Referral to a qualified lawyer where representation is required"],
     faqs: [{ q: "Do you represent clients in court?", a: "No. Litigation support here means documentation and coordination. Court representation requires a licensed advocate." }],
-    note: "Consultancy and documentation support only. Tax Compass is not a law firm; litigation representation is provided only by licensed advocates.",
+    note: "Consultancy and documentation support only. Corporate Tax Bangladesh is not a law firm; litigation representation is provided only by licensed advocates.",
     services: [
       s("corporate-legal", "Corporate Legal Consultancy", "General consultancy on corporate legal matters."),
       s("company-law", "Company Law Guidance", "Guidance on company law requirements."),

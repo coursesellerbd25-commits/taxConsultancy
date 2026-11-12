@@ -5,7 +5,7 @@ import { PageHeader, Placeholder, pageHead } from "@/components/site/PageHeader"
 import { useServices, useSite } from "@/lib/site-data";
 
 export const Route = createFileRoute("/contact")({
-  head: () => pageHead("Contact Us | Tax Compass Bangladesh", "Get in touch to request a tax or VAT consultation in Bangladesh.", "/contact"),
+  head: () => pageHead("Contact Us | Corporate Tax Bangladesh Bangladesh", "Get in touch to request a tax or VAT consultation in Bangladesh.", "/contact"),
   component: Contact,
 });
 

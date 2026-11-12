@@ -9,7 +9,7 @@ import { faqGroups } from "@/content/faqs";
 export const Route = createFileRoute("/training/$slug")({
   loader: ({ params }) => { const c = findCourse(params.slug); if (!c) throw notFound(); return c; },
   head: ({ loaderData }) => loaderData
-    ? pageHead(`${loaderData.title} | Tax Compass Training`, loaderData.overview, `/training/${loaderData.slug}`)
+    ? pageHead(`${loaderData.title} | Corporate Tax Bangladesh Training`, loaderData.overview, `/training/${loaderData.slug}`)
     : { meta: [{ title: "Course not found" }, { name: "robots", content: "noindex" }] },
   component: Course,
 });

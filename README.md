@@ -1,4 +1,4 @@
-# Bangla Tax Compass
+# Bangla Corporate Tax Bangladesh
 
 # Build a Professional Tax Consultancy Website for Bangladesh
 

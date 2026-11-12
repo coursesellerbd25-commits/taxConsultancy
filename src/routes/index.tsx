@@ -13,7 +13,7 @@ import { ProfessionalStatistics } from "@/components/site/ProfessionalStatistics
 
 export const Route = createFileRoute("/")({
   head: () => pageHead(
-    "Tax Compass | Tax, VAT & Corporate Compliance Consultancy in Bangladesh",
+    "Corporate Tax Bangladesh | Tax, VAT & Corporate Compliance Consultancy in Bangladesh",
     "Professional guidance on income tax, VAT, company registration, accounting and regulatory compliance in Bangladesh. Book a consultation.",
     "/",
   ),
@@ -72,7 +72,7 @@ function Home() {
       <section className="container-page grid gap-12 py-20 lg:grid-cols-2">
         <div>
           <SectionHeading eyebrow={`About ${site.businessName}`} title="Professional guidance, communicated clearly" />
-          <p className="mt-5 text-muted-foreground">{site.biography ?? "Tax Compass helps individuals, businesses and foreign investors understand and meet their tax, VAT and corporate compliance obligations in Bangladesh — with practical, transparent and confidential support."}</p>
+          <p className="mt-5 text-muted-foreground">{site.biography ?? "Corporate Tax Bangladesh helps individuals, businesses and foreign investors understand and meet their tax, VAT and corporate compliance obligations in Bangladesh — with practical, transparent and confidential support."}</p>
           <p className="mt-4 text-muted-foreground"><strong className="text-primary">Mission:</strong> make compliance understandable and manageable. <strong className="text-primary">Vision:</strong> a trusted, accessible compliance partner for every client we serve.</p>
           <div className="mt-5 flex flex-wrap gap-2">
             {site.credentials.length ? site.credentials.map((c) => <span key={c} className="rounded-sm border px-3 py-1 text-sm">{c}</span>) : <Placeholder>[Placeholder: verified qualifications and experience]</Placeholder>}

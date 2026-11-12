@@ -4,7 +4,7 @@ import { PageHeader, pageHead } from "@/components/site/PageHeader";
 import { NBR_URL } from "@/content/site";
 
 export const Route = createFileRoute("/resources")({
-  head: () => pageHead("Knowledge Center | Tax, VAT & Company Registration Guides | Tax Compass", "Educational articles on income tax, VAT, TIN, and tax documentation in Bangladesh.", "/resources"),
+  head: () => pageHead("Knowledge Center | Tax, VAT & Company Registration Guides | Corporate Tax Bangladesh", "Educational articles on income tax, VAT, TIN, and tax documentation in Bangladesh.", "/resources"),
   component: Resources,
 });
 

@@ -1,6 +1,6 @@
 ALTER TABLE public.inquiries ADD COLUMN IF NOT EXISTS country text NOT NULL DEFAULT 'Bangladesh';
 ALTER TABLE public.inquiries ADD COLUMN IF NOT EXISTS preferred_date date;
-UPDATE public.site_settings SET business_name = 'Tax Compass' WHERE id = 1 AND (business_name IS NULL OR business_name LIKE '[%');
+UPDATE public.site_settings SET business_name = 'Corporate Tax Bangladesh' WHERE id = 1 AND (business_name IS NULL OR business_name LIKE '[%');
 CREATE OR REPLACE FUNCTION public.submit_inquiry(payload jsonb)
  RETURNS uuid LANGUAGE plpgsql SECURITY DEFINER SET search_path TO 'public'
 AS $function$

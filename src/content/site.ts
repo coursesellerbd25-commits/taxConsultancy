@@ -5,7 +5,7 @@
  * (Phase 3 moves these values into the admin dashboard.)
  */
 export const site = {
-  businessName: "Tax Compass",
+  businessName: "Corporate Tax Bangladesh",
   tagline: "Tax & VAT Consultancy · Bangladesh",
   consultantName: null as string | null,
   contactEmail: null as string | null,

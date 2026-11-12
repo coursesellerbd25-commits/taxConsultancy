@@ -12,7 +12,7 @@ export const Route = createFileRoute("/services/$category/")({
     return { slug: c.slug, title: c.title, summary: c.summary };
   },
   head: ({ loaderData }) => loaderData
-    ? pageHead(`${loaderData.title} in Bangladesh | Tax Compass`, loaderData.summary, `/services/${loaderData.slug}`)
+    ? pageHead(`${loaderData.title} in Bangladesh | Corporate Tax Bangladesh`, loaderData.summary, `/services/${loaderData.slug}`)
     : { meta: [{ title: "Service category not found" }, { name: "robots", content: "noindex" }] },
   component: CategoryPage,
 });

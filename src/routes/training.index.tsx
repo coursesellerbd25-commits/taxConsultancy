@@ -6,7 +6,7 @@ import { CtaBand } from "@/components/site/Sections";
 import { courses } from "@/content/catalog";
 
 export const Route = createFileRoute("/training/")({
-  head: () => pageHead("Training & Courses in Tax, VAT & Accounting | Tax Compass", "Practical training in income tax, VAT, accounting, corporate compliance and online return filing in Bangladesh.", "/training"),
+  head: () => pageHead("Training & Courses in Tax, VAT & Accounting | Corporate Tax Bangladesh", "Practical training in income tax, VAT, accounting, corporate compliance and online return filing in Bangladesh.", "/training"),
   component: Training,
 });
 

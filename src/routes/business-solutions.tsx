@@ -5,7 +5,7 @@ import { PageHeader, pageHead } from "@/components/site/PageHeader";
 import { CtaBand, solutions } from "@/components/site/Sections";
 
 export const Route = createFileRoute("/business-solutions")({
-  head: () => pageHead("Business Solutions for Startups, SMEs, Companies & Investors | Tax Compass", "Packaged tax, VAT, registration and accounting support for startups, small businesses, corporates and foreign investors in Bangladesh.", "/business-solutions"),
+  head: () => pageHead("Business Solutions for Startups, SMEs, Companies & Investors | Corporate Tax Bangladesh", "Packaged tax, VAT, registration and accounting support for startups, small businesses, corporates and foreign investors in Bangladesh.", "/business-solutions"),
   component: Solutions,
 });
 

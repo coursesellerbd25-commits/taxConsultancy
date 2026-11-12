@@ -18,8 +18,8 @@ export const Route = createFileRoute("/services/$category/$slug")({
   },
   head: ({ loaderData }) => {
     if (!loaderData) return { meta: [{ title: "Service not found" }, { name: "robots", content: "noindex" }] };
-    const h = pageHead(`${loaderData.title} in Bangladesh | Tax Compass`, `${loaderData.short} Request a consultation with Tax Compass.`, `/services/${loaderData.category}/${loaderData.slug}`);
-    return { ...h, scripts: [{ type: "application/ld+json", children: JSON.stringify({ "@context": "https://schema.org", "@type": "Service", name: loaderData.title, description: loaderData.short, serviceType: loaderData.categoryTitle, areaServed: "Bangladesh", provider: { "@type": "Organization", name: "Tax Compass" } }) }] };
+    const h = pageHead(`${loaderData.title} in Bangladesh | Corporate Tax Bangladesh`, `${loaderData.short} Request a consultation with Corporate Tax Bangladesh.`, `/services/${loaderData.category}/${loaderData.slug}`);
+    return { ...h, scripts: [{ type: "application/ld+json", children: JSON.stringify({ "@context": "https://schema.org", "@type": "Service", name: loaderData.title, description: loaderData.short, serviceType: loaderData.categoryTitle, areaServed: "Bangladesh", provider: { "@type": "Organization", name: "Corporate Tax Bangladesh" } }) }] };
   },
   component: ServicePage,
 });
@@ -54,7 +54,7 @@ function ServicePage() {
           </BreadcrumbList></Breadcrumb>
           <div className="mt-5"><AvailabilityBadge value={s.availability} /></div>
           <h1 className="mt-3 max-w-3xl text-3xl font-semibold md:text-5xl">{s.title}</h1>
-          <p className="mt-4 max-w-2xl text-lg text-muted-foreground">{db?.description || s.short} Tax Compass provides structured guidance so you understand the requirements and can move forward with confidence.</p>
+          <p className="mt-4 max-w-2xl text-lg text-muted-foreground">{db?.description || s.short} Corporate Tax Bangladesh provides structured guidance so you understand the requirements and can move forward with confidence.</p>
           <div className="mt-7 flex flex-wrap gap-3">
             <Button asChild size="lg"><a href="#enquire">Book a Consultation</a></Button>
             <Button asChild size="lg" variant="outline"><Link to="/services/$category" params={{ category: c.slug }}>More {c.title}</Link></Button>

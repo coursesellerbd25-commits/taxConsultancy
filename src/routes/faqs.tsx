@@ -9,7 +9,7 @@ import { faqGroups } from "@/content/faqs";
 
 export const Route = createFileRoute("/faqs")({
   head: () => ({
-    ...pageHead("FAQs on Income Tax, VAT, Company Registration & Training | Tax Compass", "Answers to common questions about income tax, corporate tax, VAT, BIN, RJSC company registration, foreign investment and training in Bangladesh.", "/faqs"),
+    ...pageHead("FAQs on Income Tax, VAT, Company Registration & Training | Corporate Tax Bangladesh", "Answers to common questions about income tax, corporate tax, VAT, BIN, RJSC company registration, foreign investment and training in Bangladesh.", "/faqs"),
     scripts: [{ type: "application/ld+json", children: JSON.stringify({ "@context": "https://schema.org", "@type": "FAQPage", mainEntity: faqGroups.flatMap((g) => g.items).map((f) => ({ "@type": "Question", name: f.q, acceptedAnswer: { "@type": "Answer", text: f.a } })) }) }],
   }),
   component: Faqs,

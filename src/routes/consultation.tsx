@@ -5,7 +5,7 @@ import { InquiryForm } from "@/components/site/InquiryForm";
 
 export const Route = createFileRoute("/consultation")({
   validateSearch: z.object({ service: z.string().max(100).optional() }),
-  head: () => pageHead("Book a Consultation | Tax Compass Bangladesh", "Submit an enquiry for tax, VAT, company registration, accounting or compliance assistance in Bangladesh.", "/consultation"),
+  head: () => pageHead("Book a Consultation | Corporate Tax Bangladesh Bangladesh", "Submit an enquiry for tax, VAT, company registration, accounting or compliance assistance in Bangladesh.", "/consultation"),
   component: Consultation,
 });
 
