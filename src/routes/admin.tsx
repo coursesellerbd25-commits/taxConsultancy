@@ -218,14 +218,19 @@ function AdminLayout() {
             to="/admin"
             className="flex min-w-0 items-center gap-3"
           >
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#243653] text-lg font-bold text-[#D9AA63]">
-              T
-            </div>
+            <span className="flex h-9 w-9 items-center justify-center rounded-sm bg-primary text-gold">
+                    <img
+                      src="./favicon-tax_processed.png"
+                      alt="Corporate Tax Bangladesh"
+                      height={32}
+                      width={32}
+                    />
+              </span>
 
             {!sidebarCollapsed && (
               <div className="min-w-0">
                 <h1 className="truncate text-sm font-bold text-[#243653]">
-                  Corporate Tax
+                  Corporate Tax Bangladesh
                 </h1>
                 <p className="text-[11px] font-medium tracking-wide text-slate-400">
                   ADMINISTRATION
