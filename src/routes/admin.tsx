@@ -24,6 +24,7 @@ import {
 
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
+import taxLogo from "@/assets/favicon-tax_processed.png";
 
 const navigation = [
   {
@@ -218,14 +219,11 @@ function AdminLayout() {
             to="/admin"
             className="flex min-w-0 items-center gap-3"
           >
-            <span className="flex h-9 w-9 items-center justify-center rounded-sm bg-primary text-gold">
-                    <img
-                      src="./favicon-tax_processed.png"
-                      alt="Corporate Tax Bangladesh"
-                      height={32}
-                      width={32}
-                    />
-              </span>
+            <img
+              src={taxLogo}
+              alt="Corporate Tax Bangladesh"
+              className="h-10 w-10 object-contain"
+            />
 
             {!sidebarCollapsed && (
               <div className="min-w-0">
