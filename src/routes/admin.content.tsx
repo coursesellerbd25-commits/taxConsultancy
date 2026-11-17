@@ -15,6 +15,7 @@ import {
   GraduationCap,
   Settings2,
   Sparkles,
+  ClipboardList,
 } from "lucide-react";
 
 export const Route = createFileRoute("/admin/content")({
@@ -39,10 +40,34 @@ const contentSections = [
     category: "Website Pages",
   },
   {
-    title: "Services & Business Solutions",
+    title: "Frequently Asked Questions",
     description:
-      "Create, edit, publish, hide, and organize the professional tax and consultancy services displayed on your website.",
+      "Create and organize FAQs to help visitors understand your services and common tax-related questions.",
+    path: "/admin/content/faqs",
+    icon: HelpCircle,
+    category: "Website Pages",
+  },
+  {
+    title: "Contact Information",
+    description:
+      "Update business contact details, phone numbers, WhatsApp information, office address, and business hours.",
+    path: "/admin/content/contact",
+    icon: Mail,
+    category: "Website Pages",
+  },
+  {
+    title: "Services",
+    description:
+      "Create, edit, publish, hide, and organize your professional tax consultancy services.",
     path: "/admin/content/services",
+    icon: ClipboardList,
+    category: "Business Content",
+  },
+  {
+    title: "Business Solutions",
+    description:
+      "Manage business-focused solutions, corporate support, compliance assistance, and consultancy offerings.",
+    path: "/admin/content/business-solutions",
     icon: BriefcaseBusiness,
     category: "Business Content",
   },
@@ -61,22 +86,6 @@ const contentSections = [
     path: "/admin/content/resources",
     icon: BookOpen,
     category: "Business Content",
-  },
-  {
-    title: "Frequently Asked Questions",
-    description:
-      "Create and organize FAQs to help visitors understand your services and common tax-related questions.",
-    path: "/admin/content/faqs",
-    icon: HelpCircle,
-    category: "Website Pages",
-  },
-  {
-    title: "Contact Information",
-    description:
-      "Update business contact details, phone numbers, WhatsApp information, office address, and business hours.",
-    path: "/admin/content/contact",
-    icon: Mail,
-    category: "Website Pages",
   },
 ];
 
@@ -127,10 +136,8 @@ function ContentCard({
 function WebsiteContentPage() {
   const location = useLocation();
 
-  // Show the CMS overview only at /admin/content.
-  // Child routes render inside the Outlet.
   const isContentIndex =
-    location.pathname.replace(/\/$/, "") === "/admin/content";
+    location.pathname.replace(/\/+$/, "") === "/admin/content";
 
   if (!isContentIndex) {
     return <Outlet />;
@@ -183,9 +190,9 @@ function WebsiteContentPage() {
           </h2>
 
           <p className="mt-2 max-w-xl text-sm leading-6 text-slate-200">
-            Update your business information, publish services, organize
-            training materials, and maintain useful resources without
-            manually changing website code.
+            Update your business information, manage services and business
+            solutions separately, publish training materials, and maintain
+            useful resources without manually changing website code.
           </p>
 
           <div className="mt-5 flex flex-wrap gap-3 text-xs text-slate-200">
@@ -240,8 +247,8 @@ function WebsiteContentPage() {
               Business Content
             </h2>
             <p className="mt-1 text-sm text-slate-500">
-              Manage your professional services, training, and learning
-              resources.
+              Manage services, business solutions, training, and learning
+              resources independently.
             </p>
           </div>
 
@@ -268,10 +275,9 @@ function WebsiteContentPage() {
             Content publishing tip
           </h3>
           <p className="mt-1 text-sm leading-6 text-slate-600">
-            Changes made in these sections are intended to update the public
-            website through the connected content system. Make sure each
-            section's public page reads from the same Supabase data before
-            publishing changes.
+            Services and Business Solutions now have separate management
+            pages. Make sure each public website section reads from its
+            corresponding content source.
           </p>
         </div>
       </div>
