@@ -1,7 +1,11 @@
 
 import { createFileRoute } from "@tanstack/react-router";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import {
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
+import { useState, type FormEvent, type ReactNode } from "react";
 import {
   Plus,
   Pencil,
@@ -29,7 +33,10 @@ export const Route = createFileRoute(
   component: BusinessSolutionsPage,
 });
 
-type Service = {
+const TABLE = "business-solutions";
+const QUERY_KEY = ["admin-business-solutions"];
+
+type BusinessSolution = {
   id: string;
   title: string;
   slug: string;
@@ -43,7 +50,7 @@ type Service = {
   updated_at: string;
 };
 
-type ServiceForm = {
+type SolutionForm = {
   title: string;
   slug: string;
   short_description: string;
@@ -55,7 +62,7 @@ type ServiceForm = {
   enabled: boolean;
 };
 
-const emptyForm: ServiceForm = {
+const emptyForm: SolutionForm = {
   title: "",
   slug: "",
   short_description: "",
@@ -66,6 +73,12 @@ const emptyForm: ServiceForm = {
   display_order: 0,
   enabled: true,
 };
+
+const inputClass =
+  "w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-[#243653] focus:ring-2 focus:ring-[#243653]/10";
+
+const textareaClass =
+  "w-full min-h-28 resize-y rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-[#243653] focus:ring-2 focus:ring-[#243653]/10";
 
 function slugify(value: string) {
   return value
@@ -82,17 +95,17 @@ function toLines(value: string): string[] {
     .filter(Boolean);
 }
 
-function toForm(service: Service): ServiceForm {
+function toForm(solution: BusinessSolution): SolutionForm {
   return {
-    title: service.title ?? "",
-    slug: service.slug ?? "",
-    short_description: service.short_description ?? "",
-    full_description: service.full_description ?? "",
-    who_needs: (service.who_needs ?? []).join("\n"),
-    help_with: (service.help_with ?? []).join("\n"),
-    documents: (service.documents ?? []).join("\n"),
-    display_order: service.display_order ?? 0,
-    enabled: service.enabled ?? true,
+    title: solution.title ?? "",
+    slug: solution.slug ?? "",
+    short_description: solution.short_description ?? "",
+    full_description: solution.full_description ?? "",
+    who_needs: (solution.who_needs ?? []).join("\n"),
+    help_with: (solution.help_with ?? []).join("\n"),
+    documents: (solution.documents ?? []).join("\n"),
+    display_order: solution.display_order ?? 0,
+    enabled: solution.enabled ?? true,
   };
 }
 
@@ -103,7 +116,7 @@ function Field({
 }: {
   label: string;
   hint?: string;
-  children: React.ReactNode;
+  children: ReactNode;
 }) {
   return (
     <div className="space-y-2">
@@ -116,55 +129,87 @@ function Field({
   );
 }
 
-const inputClass =
-  "w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-[#243653] focus:ring-2 focus:ring-[#243653]/10";
+function SummaryCard({
+  label,
+  value,
+  icon,
+  accent = "navy",
+}: {
+  label: string;
+  value: number;
+  icon: ReactNode;
+  accent?: "navy" | "green" | "amber";
+}) {
+  const styles = {
+    navy: "bg-[#243653]/10 text-[#243653]",
+    green: "bg-emerald-50 text-emerald-600",
+    amber: "bg-amber-50 text-amber-600",
+  };
 
-const textareaClass =
-  "w-full min-h-28 resize-y rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-[#243653] focus:ring-2 focus:ring-[#243653]/10";
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+      <div className="flex items-center justify-between">
+        <p className="text-sm font-medium text-slate-500">{label}</p>
+        <div className={`rounded-xl p-2.5 ${styles[accent]}`}>
+          {icon}
+        </div>
+      </div>
+      <p className="mt-4 text-3xl font-bold tracking-tight text-[#243653]">
+        {value}
+      </p>
+    </div>
+  );
+}
 
 function BusinessSolutionsPage() {
   const queryClient = useQueryClient();
 
   const [search, setSearch] = useState("");
   const [showForm, setShowForm] = useState(false);
-  const [editingService, setEditingService] = useState<Service | null>(null);
-  const [form, setForm] = useState<ServiceForm>(emptyForm);
+  const [editingSolution, setEditingSolution] =
+    useState<BusinessSolution | null>(null);
+  const [form, setForm] = useState<SolutionForm>(emptyForm);
   const [formError, setFormError] = useState("");
   const [notice, setNotice] = useState("");
 
-  const servicesQuery = useQuery({
-    queryKey: ["admin-business-solutions"],
+  // Load business solutions from their independent table.
+  const solutionsQuery = useQuery({
+    queryKey: QUERY_KEY,
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("services")
+        .from(TABLE)
         .select(
           "id, title, slug, short_description, full_description, who_needs, help_with, documents, display_order, enabled, updated_at"
         )
         .order("display_order", { ascending: true });
 
       if (error) throw error;
-      return (data ?? []) as Service[];
+
+      return (data ?? []) as BusinessSolution[];
     },
   });
 
-  const services = servicesQuery.data ?? [];
+  const solutions = solutionsQuery.data ?? [];
 
-  const filteredServices = services.filter((service) => {
+  const filteredSolutions = solutions.filter((solution) => {
     const searchValue = search.toLowerCase();
 
     return (
-      service.title.toLowerCase().includes(searchValue) ||
-      service.slug.toLowerCase().includes(searchValue) ||
-      service.short_description.toLowerCase().includes(searchValue)
+      solution.title.toLowerCase().includes(searchValue) ||
+      solution.slug.toLowerCase().includes(searchValue) ||
+      solution.short_description.toLowerCase().includes(searchValue)
     );
   });
 
-  const enabledCount = services.filter((service) => service.enabled).length;
-  const disabledCount = services.length - enabledCount;
+  const enabledCount = solutions.filter(
+    (solution) => solution.enabled
+  ).length;
 
-  function updateField<K extends keyof ServiceForm>(
+  const disabledCount = solutions.length - enabledCount;
+
+  function updateField<K extends keyof SolutionForm>(
     field: K,
-    value: ServiceForm[K]
+    value: SolutionForm[K]
   ) {
     setForm((previous) => ({
       ...previous,
@@ -173,33 +218,46 @@ function BusinessSolutionsPage() {
   }
 
   function openCreateForm() {
-    setEditingService(null);
+    setEditingSolution(null);
     setForm({
       ...emptyForm,
-      display_order: services.length + 1,
+      display_order: solutions.length + 1,
     });
     setFormError("");
     setNotice("");
     setShowForm(true);
   }
 
-  function openEditForm(service: Service) {
-    setEditingService(service);
-    setForm(toForm(service));
+  function openEditForm(solution: BusinessSolution) {
+    setEditingSolution(solution);
+    setForm(toForm(solution));
     setFormError("");
     setNotice("");
     setShowForm(true);
+
+    window.setTimeout(() => {
+      document
+        .getElementById("business-solution-editor")
+        ?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 50);
   }
 
   function closeForm() {
     setShowForm(false);
-    setEditingService(null);
+    setEditingSolution(null);
     setForm(emptyForm);
     setFormError("");
   }
 
+  function invalidateSolutions() {
+    return queryClient.invalidateQueries({
+      queryKey: QUERY_KEY,
+    });
+  }
+
+  // Create or update a business solution.
   const saveMutation = useMutation({
-    mutationFn: async (values: ServiceForm) => {
+    mutationFn: async (values: SolutionForm) => {
       const payload = {
         title: values.title.trim(),
         slug: values.slug.trim() || slugify(values.title),
@@ -213,64 +271,61 @@ function BusinessSolutionsPage() {
         updated_at: new Date().toISOString(),
       };
 
-      if (editingService) {
+      if (editingSolution) {
         const { error } = await supabase
-          .from("services")
+          .from(TABLE)
           .update(payload)
-          .eq("id", editingService.id);
+          .eq("id", editingSolution.id);
 
         if (error) throw error;
       } else {
         const { error } = await supabase
-          .from("services")
+          .from(TABLE)
           .insert(payload);
 
         if (error) throw error;
       }
     },
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({
-        queryKey: ["admin-business-solutions"],
-      });
 
-      await queryClient.invalidateQueries({
-        queryKey: ["services"],
-      });
+    onSuccess: async () => {
+      await invalidateSolutions();
+
+      const wasEditing = Boolean(editingSolution);
 
       closeForm();
+
       setNotice(
-        editingService
-          ? "Service updated successfully."
-          : "New service added successfully."
+        wasEditing
+          ? "Business solution updated successfully."
+          : "Business solution created successfully."
       );
     },
+
     onError: (error: Error) => {
-      setFormError(error.message || "Something went wrong. Please try again.");
+      setFormError(
+        error.message || "Something went wrong. Please try again."
+      );
     },
   });
 
+  // Delete only from the business-solutions table.
   const deleteMutation = useMutation({
-    mutationFn: async (serviceId: string) => {
+    mutationFn: async (solutionId: string) => {
       const { error } = await supabase
-        .from("services")
+        .from(TABLE)
         .delete()
-        .eq("id", serviceId);
+        .eq("id", solutionId);
 
       if (error) throw error;
     },
+
     onSuccess: async () => {
-      await queryClient.invalidateQueries({
-        queryKey: ["admin-business-solutions"],
-      });
-
-      await queryClient.invalidateQueries({
-        queryKey: ["services"],
-      });
-
-      setNotice("Service deleted successfully.");
+      await invalidateSolutions();
+      setNotice("Business solution deleted successfully.");
     },
   });
 
+  // Publish or hide a business solution.
   const toggleMutation = useMutation({
     mutationFn: async ({
       id,
@@ -280,7 +335,7 @@ function BusinessSolutionsPage() {
       enabled: boolean;
     }) => {
       const { error } = await supabase
-        .from("services")
+        .from(TABLE)
         .update({
           enabled,
           updated_at: new Date().toISOString(),
@@ -289,24 +344,26 @@ function BusinessSolutionsPage() {
 
       if (error) throw error;
     },
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({
-        queryKey: ["admin-business-solutions"],
-      });
 
-      await queryClient.invalidateQueries({
-        queryKey: ["services"],
-      });
+    onSuccess: async (_, variables) => {
+      await invalidateSolutions();
+
+      setNotice(
+        variables.enabled
+          ? "Business solution published successfully."
+          : "Business solution hidden successfully."
+      );
     },
   });
 
-  function handleSave(event: React.FormEvent<HTMLFormElement>) {
+  function handleSave(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+
     setFormError("");
     setNotice("");
 
     if (!form.title.trim()) {
-      setFormError("Please enter a service title.");
+      setFormError("Please enter a business solution title.");
       return;
     }
 
@@ -315,7 +372,9 @@ function BusinessSolutionsPage() {
       return;
     }
 
-    if (form.slug.trim() && !/^[a-z0-9-]+$/.test(form.slug.trim())) {
+    const finalSlug = form.slug.trim() || slugify(form.title);
+
+    if (!/^[a-z0-9-]+$/.test(finalSlug)) {
       setFormError(
         "The URL slug can only contain lowercase letters, numbers, and hyphens."
       );
@@ -330,17 +389,17 @@ function BusinessSolutionsPage() {
     saveMutation.mutate(form);
   }
 
-  function handleDelete(service: Service) {
+  function handleDelete(solution: BusinessSolution) {
     const confirmed = window.confirm(
-      `Are you sure you want to delete "${service.title}"? This action cannot be undone.`
+      `Are you sure you want to delete "${solution.title}"? This action cannot be undone.`
     );
 
     if (confirmed) {
-      deleteMutation.mutate(service.id);
+      deleteMutation.mutate(solution.id);
     }
   }
 
-  if (servicesQuery.isLoading) {
+  if (solutionsQuery.isLoading) {
     return (
       <div className="flex min-h-[55vh] items-center justify-center">
         <div className="flex items-center gap-3 text-sm text-slate-500">
@@ -351,18 +410,23 @@ function BusinessSolutionsPage() {
     );
   }
 
-  if (servicesQuery.isError) {
+  if (solutionsQuery.isError) {
     return (
       <div className="rounded-2xl border border-red-200 bg-red-50 p-6">
         <div className="flex items-center gap-3 text-red-700">
           <AlertCircle className="h-5 w-5" />
-          <h2 className="font-semibold">Unable to load services</h2>
+          <h2 className="font-semibold">
+            Unable to load business solutions
+          </h2>
         </div>
+
         <p className="mt-2 text-sm text-red-600">
-          {servicesQuery.error.message}
+          {solutionsQuery.error.message}
         </p>
+
         <button
-          onClick={() => servicesQuery.refetch()}
+          type="button"
+          onClick={() => solutionsQuery.refetch()}
           className="mt-4 rounded-lg bg-[#243653] px-4 py-2 text-sm font-medium text-white"
         >
           Try again
@@ -386,13 +450,13 @@ function BusinessSolutionsPage() {
           </h1>
 
           <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
-            Manage the services displayed on your public website. Add new
-            solutions, update descriptions, organize their order, and control
-            their visibility.
+            Manage corporate and business-focused solutions independently
+            from your regular tax consultancy services.
           </p>
         </div>
 
         <button
+          type="button"
           onClick={openCreateForm}
           className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#243653] px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-[#1b2a42]"
         >
@@ -401,12 +465,14 @@ function BusinessSolutionsPage() {
         </button>
       </div>
 
-      {/* Feedback */}
+      {/* Feedback messages */}
       {notice && (
         <div className="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
           <CheckCircle2 className="h-4 w-4 shrink-0" />
           {notice}
+
           <button
+            type="button"
             onClick={() => setNotice("")}
             className="ml-auto rounded p-1 hover:bg-emerald-100"
             aria-label="Dismiss message"
@@ -418,13 +484,14 @@ function BusinessSolutionsPage() {
 
       {deleteMutation.isError && (
         <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-          Unable to delete this service: {deleteMutation.error.message}
+          Unable to delete business solution:{" "}
+          {deleteMutation.error.message}
         </div>
       )}
 
       {toggleMutation.isError && (
         <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-          Unable to update service visibility: {toggleMutation.error.message}
+          Unable to update visibility: {toggleMutation.error.message}
         </div>
       )}
 
@@ -432,15 +499,17 @@ function BusinessSolutionsPage() {
       <div className="grid gap-4 sm:grid-cols-3">
         <SummaryCard
           label="Total Solutions"
-          value={services.length}
+          value={solutions.length}
           icon={<BriefcaseBusiness className="h-5 w-5" />}
         />
+
         <SummaryCard
           label="Visible on Website"
           value={enabledCount}
           icon={<Eye className="h-5 w-5" />}
           accent="green"
         />
+
         <SummaryCard
           label="Hidden Solutions"
           value={disabledCount}
@@ -449,23 +518,27 @@ function BusinessSolutionsPage() {
         />
       </div>
 
-      {/* Editor */}
+      {/* Create / Edit form */}
       {showForm && (
         <section
-          className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"
+          className="scroll-mt-6 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"
           id="business-solution-editor"
         >
           <div className="flex items-center justify-between gap-3 border-b border-slate-100 px-5 py-5 sm:px-7">
             <div>
               <p className="text-xs font-semibold uppercase tracking-wider text-[#B7792B]">
-                Solution Editor
+                Business Solutions Editor
               </p>
+
               <h2 className="mt-1 text-lg font-bold text-[#243653]">
-                {editingService ? "Edit Solution" : "Create New Solution"}
+                {editingSolution
+                  ? "Edit Business Solution"
+                  : "Create New Business Solution"}
               </h2>
             </div>
 
             <button
+              type="button"
               onClick={closeForm}
               className="rounded-lg p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
               aria-label="Close editor"
@@ -482,11 +555,12 @@ function BusinessSolutionsPage() {
                   value={form.title}
                   onChange={(event) => {
                     const title = event.target.value;
+
                     setForm((previous) => ({
                       ...previous,
                       title,
                       slug:
-                        !editingService ||
+                        !editingSolution ||
                         previous.slug === slugify(previous.title)
                           ? slugify(title)
                           : previous.slug,
@@ -499,13 +573,16 @@ function BusinessSolutionsPage() {
 
               <Field
                 label="URL Slug"
-                hint="Used in the service URL. Use lowercase letters, numbers, and hyphens."
+                hint="Use lowercase letters, numbers, and hyphens."
               >
                 <input
                   className={inputClass}
                   value={form.slug}
                   onChange={(event) =>
-                    updateField("slug", event.target.value.toLowerCase())
+                    updateField(
+                      "slug",
+                      event.target.value.toLowerCase()
+                    )
                   }
                   placeholder="corporate-tax-consultancy"
                 />
@@ -514,7 +591,7 @@ function BusinessSolutionsPage() {
 
             <Field
               label="Short Description *"
-              hint="A concise description for the service card on the public website."
+              hint="A concise description for the public Business Solutions card."
             >
               <textarea
                 className={textareaClass}
@@ -530,7 +607,7 @@ function BusinessSolutionsPage() {
 
             <Field
               label="Full Description"
-              hint="Provide the complete service description. Keep it clear and customer-friendly."
+              hint="Provide the complete solution description."
             >
               <textarea
                 className={textareaClass}
@@ -539,13 +616,13 @@ function BusinessSolutionsPage() {
                 onChange={(event) =>
                   updateField("full_description", event.target.value)
                 }
-                placeholder="Explain what this service includes..."
+                placeholder="Explain what this business solution includes..."
               />
             </Field>
 
             <div className="grid gap-6 lg:grid-cols-3">
               <Field
-                label="Who Needs This Service?"
+                label="Who Needs This Solution?"
                 hint="Enter one item per line."
               >
                 <textarea
@@ -573,7 +650,7 @@ function BusinessSolutionsPage() {
                     updateField("help_with", event.target.value)
                   }
                   placeholder={
-                    "Tax planning\nReturn preparation\nCompliance support"
+                    "Business advisory\nCompliance support\nCorporate planning"
                   }
                 />
               </Field>
@@ -627,7 +704,9 @@ function BusinessSolutionsPage() {
 
                 <button
                   type="button"
-                  onClick={() => updateField("enabled", !form.enabled)}
+                  onClick={() =>
+                    updateField("enabled", !form.enabled)
+                  }
                   className={`relative h-6 w-11 rounded-full transition ${
                     form.enabled ? "bg-emerald-500" : "bg-slate-300"
                   }`}
@@ -670,9 +749,10 @@ function BusinessSolutionsPage() {
                 ) : (
                   <Save className="h-4 w-4" />
                 )}
+
                 {saveMutation.isPending
                   ? "Saving..."
-                  : editingService
+                  : editingSolution
                     ? "Save Changes"
                     : "Create Solution"}
               </button>
@@ -681,13 +761,15 @@ function BusinessSolutionsPage() {
         </section>
       )}
 
-      {/* Search and list */}
+      {/* Search and solutions list */}
       <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
         <div className="flex flex-col gap-4 border-b border-slate-100 p-5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
           <div>
-            <h2 className="font-bold text-[#243653]">All Business Solutions</h2>
+            <h2 className="font-bold text-[#243653]">
+              All Business Solutions
+            </h2>
             <p className="mt-1 text-xs text-slate-500">
-              Manage the services available on your public website.
+              Manage the business solutions available on your public website.
             </p>
           </div>
 
@@ -702,21 +784,27 @@ function BusinessSolutionsPage() {
           </div>
         </div>
 
-        {filteredServices.length === 0 ? (
+        {filteredSolutions.length === 0 ? (
           <div className="px-6 py-16 text-center">
             <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-100 text-slate-400">
               <BriefcaseBusiness className="h-6 w-6" />
             </div>
+
             <h3 className="mt-4 font-semibold text-[#243653]">
-              {search ? "No matching solutions" : "No business solutions yet"}
+              {search
+                ? "No matching solutions"
+                : "No business solutions yet"}
             </h3>
+
             <p className="mx-auto mt-2 max-w-sm text-sm text-slate-500">
               {search
                 ? "Try another search term."
                 : "Start by adding your first business solution."}
             </p>
+
             {!search && (
               <button
+                type="button"
                 onClick={openCreateForm}
                 className="mt-5 inline-flex items-center gap-2 rounded-lg bg-[#243653] px-4 py-2.5 text-sm font-semibold text-white"
               >
@@ -727,9 +815,9 @@ function BusinessSolutionsPage() {
           </div>
         ) : (
           <div className="divide-y divide-slate-100">
-            {filteredServices.map((service) => (
+            {filteredSolutions.map((solution) => (
               <article
-                key={service.id}
+                key={solution.id}
                 className="p-5 transition hover:bg-slate-50/70 sm:px-6"
               >
                 <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
@@ -741,44 +829,46 @@ function BusinessSolutionsPage() {
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-2">
                         <h3 className="font-bold text-[#243653]">
-                          {service.title}
+                          {solution.title}
                         </h3>
 
                         <span
                           className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${
-                            service.enabled
+                            solution.enabled
                               ? "bg-emerald-50 text-emerald-700"
                               : "bg-amber-50 text-amber-700"
                           }`}
                         >
-                          {service.enabled ? "Published" : "Hidden"}
+                          {solution.enabled ? "Published" : "Hidden"}
                         </span>
 
                         <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-medium text-slate-500">
-                          Order: {service.display_order}
+                          Order: {solution.display_order}
                         </span>
                       </div>
 
                       <p className="mt-1 text-xs text-slate-400">
-                        /{service.slug}
+                        /{solution.slug}
                       </p>
 
                       <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-600">
-                        {service.short_description}
+                        {solution.short_description}
                       </p>
 
                       <div className="mt-4 flex flex-wrap gap-4 text-xs text-slate-500">
                         <span className="inline-flex items-center gap-1.5">
                           <Users className="h-3.5 w-3.5" />
-                          {service.who_needs?.length ?? 0} audience items
+                          {solution.who_needs?.length ?? 0} audience items
                         </span>
+
                         <span className="inline-flex items-center gap-1.5">
                           <ListChecks className="h-3.5 w-3.5" />
-                          {service.help_with?.length ?? 0} support items
+                          {solution.help_with?.length ?? 0} support items
                         </span>
+
                         <span className="inline-flex items-center gap-1.5">
                           <FileText className="h-3.5 w-3.5" />
-                          {service.documents?.length ?? 0} documents
+                          {solution.documents?.length ?? 0} documents
                         </span>
                       </div>
                     </div>
@@ -786,28 +876,32 @@ function BusinessSolutionsPage() {
 
                   <div className="flex shrink-0 flex-wrap items-center gap-2 border-t border-slate-100 pt-3 lg:border-0 lg:pt-0">
                     <button
+                      type="button"
                       onClick={() =>
                         toggleMutation.mutate({
-                          id: service.id,
-                          enabled: !service.enabled,
+                          id: solution.id,
+                          enabled: !solution.enabled,
                         })
                       }
                       disabled={toggleMutation.isPending}
                       title={
-                        service.enabled ? "Hide from website" : "Publish"
+                        solution.enabled
+                          ? "Hide from website"
+                          : "Publish"
                       }
                       className="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 transition hover:bg-slate-100 disabled:opacity-50"
                     >
-                      {service.enabled ? (
+                      {solution.enabled ? (
                         <EyeOff className="h-4 w-4" />
                       ) : (
                         <Eye className="h-4 w-4" />
                       )}
-                      {service.enabled ? "Hide" : "Publish"}
+                      {solution.enabled ? "Hide" : "Publish"}
                     </button>
 
                     <button
-                      onClick={() => openEditForm(service)}
+                      type="button"
+                      onClick={() => openEditForm(solution)}
                       className="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-[#243653] transition hover:bg-slate-100"
                     >
                       <Pencil className="h-4 w-4" />
@@ -815,7 +909,8 @@ function BusinessSolutionsPage() {
                     </button>
 
                     <button
-                      onClick={() => handleDelete(service)}
+                      type="button"
+                      onClick={() => handleDelete(solution)}
                       disabled={deleteMutation.isPending}
                       className="inline-flex items-center gap-2 rounded-lg border border-red-100 px-3 py-2 text-xs font-semibold text-red-600 transition hover:bg-red-50 disabled:opacity-50"
                     >
@@ -831,44 +926,15 @@ function BusinessSolutionsPage() {
 
         <div className="flex flex-col gap-2 border-t border-slate-100 bg-slate-50/70 px-5 py-4 text-xs text-slate-500 sm:flex-row sm:items-center sm:justify-between sm:px-6">
           <span>
-            Showing {filteredServices.length} of {services.length} solutions
+            Showing {filteredSolutions.length} of {solutions.length} solutions
           </span>
+
           <span className="inline-flex items-center gap-1.5">
             <ArrowUpDown className="h-3.5 w-3.5" />
             Sorted by display order
           </span>
         </div>
       </section>
-    </div>
-  );
-}
-
-function SummaryCard({
-  label,
-  value,
-  icon,
-  accent = "navy",
-}: {
-  label: string;
-  value: number;
-  icon: React.ReactNode;
-  accent?: "navy" | "green" | "amber";
-}) {
-  const styles = {
-    navy: "bg-[#243653]/10 text-[#243653]",
-    green: "bg-emerald-50 text-emerald-600",
-    amber: "bg-amber-50 text-amber-600",
-  };
-
-  return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-      <div className="flex items-center justify-between">
-        <p className="text-sm font-medium text-slate-500">{label}</p>
-        <div className={`rounded-xl p-2.5 ${styles[accent]}`}>{icon}</div>
-      </div>
-      <p className="mt-4 text-3xl font-bold tracking-tight text-[#243653]">
-        {value}
-      </p>
     </div>
   );
 }
