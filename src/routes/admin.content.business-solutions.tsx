@@ -5,7 +5,8 @@ import {
   useQuery,
   useQueryClient,
 } from "@tanstack/react-query";
-import { useState, type FormEvent, type ReactNode } from "react";
+import { useState } from "react";
+import type { ReactNode, FormEvent } from "react";
 import {
   Plus,
   Pencil,
@@ -32,9 +33,6 @@ export const Route = createFileRoute(
 )({
   component: BusinessSolutionsPage,
 });
-
-const TABLE = "business-solutions";
-const QUERY_KEY = ["admin-business-solutions"];
 
 type BusinessSolution = {
   id: string;
@@ -74,11 +72,7 @@ const emptyForm: SolutionForm = {
   enabled: true,
 };
 
-const inputClass =
-  "w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-[#243653] focus:ring-2 focus:ring-[#243653]/10";
-
-const textareaClass =
-  "w-full min-h-28 resize-y rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-[#243653] focus:ring-2 focus:ring-[#243653]/10";
+const TABLE = "business_solutions";
 
 function slugify(value: string) {
   return value
@@ -129,37 +123,11 @@ function Field({
   );
 }
 
-function SummaryCard({
-  label,
-  value,
-  icon,
-  accent = "navy",
-}: {
-  label: string;
-  value: number;
-  icon: ReactNode;
-  accent?: "navy" | "green" | "amber";
-}) {
-  const styles = {
-    navy: "bg-[#243653]/10 text-[#243653]",
-    green: "bg-emerald-50 text-emerald-600",
-    amber: "bg-amber-50 text-amber-600",
-  };
+const inputClass =
+  "w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-[#243653] focus:ring-2 focus:ring-[#243653]/10";
 
-  return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-      <div className="flex items-center justify-between">
-        <p className="text-sm font-medium text-slate-500">{label}</p>
-        <div className={`rounded-xl p-2.5 ${styles[accent]}`}>
-          {icon}
-        </div>
-      </div>
-      <p className="mt-4 text-3xl font-bold tracking-tight text-[#243653]">
-        {value}
-      </p>
-    </div>
-  );
-}
+const textareaClass =
+  "w-full min-h-28 resize-y rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-[#243653] focus:ring-2 focus:ring-[#243653]/10";
 
 function BusinessSolutionsPage() {
   const queryClient = useQueryClient();
@@ -172,12 +140,12 @@ function BusinessSolutionsPage() {
   const [formError, setFormError] = useState("");
   const [notice, setNotice] = useState("");
 
-  // Load business solutions from their independent table.
+  // Load only Business Solutions
   const solutionsQuery = useQuery({
-    queryKey: QUERY_KEY,
+    queryKey: ["admin-business-solutions"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from(TABLE)
+        .from("business_solutions")
         .select(
           "id, title, slug, short_description, full_description, who_needs, help_with, documents, display_order, enabled, updated_at"
         )
@@ -234,12 +202,6 @@ function BusinessSolutionsPage() {
     setFormError("");
     setNotice("");
     setShowForm(true);
-
-    window.setTimeout(() => {
-      document
-        .getElementById("business-solution-editor")
-        ?.scrollIntoView({ behavior: "smooth", block: "start" });
-    }, 50);
   }
 
   function closeForm() {
@@ -249,13 +211,7 @@ function BusinessSolutionsPage() {
     setFormError("");
   }
 
-  function invalidateSolutions() {
-    return queryClient.invalidateQueries({
-      queryKey: QUERY_KEY,
-    });
-  }
-
-  // Create or update a business solution.
+  // Create and update Business Solutions
   const saveMutation = useMutation({
     mutationFn: async (values: SolutionForm) => {
       const payload = {
@@ -273,14 +229,14 @@ function BusinessSolutionsPage() {
 
       if (editingSolution) {
         const { error } = await supabase
-          .from(TABLE)
+          .from("business_solutions")
           .update(payload)
           .eq("id", editingSolution.id);
 
         if (error) throw error;
       } else {
         const { error } = await supabase
-          .from(TABLE)
+          .from("business_solutions")
           .insert(payload);
 
         if (error) throw error;
@@ -288,16 +244,16 @@ function BusinessSolutionsPage() {
     },
 
     onSuccess: async () => {
-      await invalidateSolutions();
-
-      const wasEditing = Boolean(editingSolution);
+      await queryClient.invalidateQueries({
+        queryKey: ["admin-business-solutions"],
+      });
 
       closeForm();
 
       setNotice(
-        wasEditing
-          ? "Business solution updated successfully."
-          : "Business solution created successfully."
+        editingSolution
+          ? "Business Solution updated successfully."
+          : "New Business Solution created successfully."
       );
     },
 
@@ -308,11 +264,11 @@ function BusinessSolutionsPage() {
     },
   });
 
-  // Delete only from the business-solutions table.
+  // Delete only from business_solutions
   const deleteMutation = useMutation({
     mutationFn: async (solutionId: string) => {
       const { error } = await supabase
-        .from(TABLE)
+        .from("business_solutions")
         .delete()
         .eq("id", solutionId);
 
@@ -320,12 +276,15 @@ function BusinessSolutionsPage() {
     },
 
     onSuccess: async () => {
-      await invalidateSolutions();
-      setNotice("Business solution deleted successfully.");
+      await queryClient.invalidateQueries({
+        queryKey: ["admin-business-solutions"],
+      });
+
+      setNotice("Business Solution deleted successfully.");
     },
   });
 
-  // Publish or hide a business solution.
+  // Publish or hide a Business Solution
   const toggleMutation = useMutation({
     mutationFn: async ({
       id,
@@ -335,7 +294,7 @@ function BusinessSolutionsPage() {
       enabled: boolean;
     }) => {
       const { error } = await supabase
-        .from(TABLE)
+        .from("business_solutions")
         .update({
           enabled,
           updated_at: new Date().toISOString(),
@@ -345,25 +304,20 @@ function BusinessSolutionsPage() {
       if (error) throw error;
     },
 
-    onSuccess: async (_, variables) => {
-      await invalidateSolutions();
-
-      setNotice(
-        variables.enabled
-          ? "Business solution published successfully."
-          : "Business solution hidden successfully."
-      );
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({
+        queryKey: ["admin-business-solutions"],
+      });
     },
   });
 
   function handleSave(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-
     setFormError("");
     setNotice("");
 
     if (!form.title.trim()) {
-      setFormError("Please enter a business solution title.");
+      setFormError("Please enter a Business Solution title.");
       return;
     }
 
@@ -372,9 +326,10 @@ function BusinessSolutionsPage() {
       return;
     }
 
-    const finalSlug = form.slug.trim() || slugify(form.title);
-
-    if (!/^[a-z0-9-]+$/.test(finalSlug)) {
+    if (
+      form.slug.trim() &&
+      !/^[a-z0-9-]+$/.test(form.slug.trim())
+    ) {
       setFormError(
         "The URL slug can only contain lowercase letters, numbers, and hyphens."
       );
@@ -404,7 +359,7 @@ function BusinessSolutionsPage() {
       <div className="flex min-h-[55vh] items-center justify-center">
         <div className="flex items-center gap-3 text-sm text-slate-500">
           <Loader2 className="h-5 w-5 animate-spin" />
-          Loading business solutions...
+          Loading Business Solutions...
         </div>
       </div>
     );
@@ -416,7 +371,7 @@ function BusinessSolutionsPage() {
         <div className="flex items-center gap-3 text-red-700">
           <AlertCircle className="h-5 w-5" />
           <h2 className="font-semibold">
-            Unable to load business solutions
+            Unable to load Business Solutions
           </h2>
         </div>
 
@@ -425,7 +380,6 @@ function BusinessSolutionsPage() {
         </p>
 
         <button
-          type="button"
           onClick={() => solutionsQuery.refetch()}
           className="mt-4 rounded-lg bg-[#243653] px-4 py-2 text-sm font-medium text-white"
         >
@@ -450,13 +404,14 @@ function BusinessSolutionsPage() {
           </h1>
 
           <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
-            Manage corporate and business-focused solutions independently
-            from your regular tax consultancy services.
+            Manage your business-focused consultancy solutions.
+            Add new solutions, update descriptions, organize their
+            display order, and control their visibility independently
+            of your Services section.
           </p>
         </div>
 
         <button
-          type="button"
           onClick={openCreateForm}
           className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#243653] px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-[#1b2a42]"
         >
@@ -465,14 +420,13 @@ function BusinessSolutionsPage() {
         </button>
       </div>
 
-      {/* Feedback messages */}
+      {/* Feedback */}
       {notice && (
         <div className="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
           <CheckCircle2 className="h-4 w-4 shrink-0" />
           {notice}
 
           <button
-            type="button"
             onClick={() => setNotice("")}
             className="ml-auto rounded p-1 hover:bg-emerald-100"
             aria-label="Dismiss message"
@@ -484,7 +438,7 @@ function BusinessSolutionsPage() {
 
       {deleteMutation.isError && (
         <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-          Unable to delete business solution:{" "}
+          Unable to delete this Business Solution:{" "}
           {deleteMutation.error.message}
         </div>
       )}
@@ -518,16 +472,16 @@ function BusinessSolutionsPage() {
         />
       </div>
 
-      {/* Create / Edit form */}
+      {/* Editor */}
       {showForm && (
         <section
-          className="scroll-mt-6 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"
+          className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"
           id="business-solution-editor"
         >
           <div className="flex items-center justify-between gap-3 border-b border-slate-100 px-5 py-5 sm:px-7">
             <div>
               <p className="text-xs font-semibold uppercase tracking-wider text-[#B7792B]">
-                Business Solutions Editor
+                Business Solution Editor
               </p>
 
               <h2 className="mt-1 text-lg font-bold text-[#243653]">
@@ -538,7 +492,6 @@ function BusinessSolutionsPage() {
             </div>
 
             <button
-              type="button"
               onClick={closeForm}
               className="rounded-lg p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
               aria-label="Close editor"
@@ -566,7 +519,7 @@ function BusinessSolutionsPage() {
                           : previous.slug,
                     }));
                   }}
-                  placeholder="e.g. Corporate Tax Consultancy"
+                  placeholder="e.g. Corporate Business Advisory"
                   required
                 />
               </Field>
@@ -584,39 +537,45 @@ function BusinessSolutionsPage() {
                       event.target.value.toLowerCase()
                     )
                   }
-                  placeholder="corporate-tax-consultancy"
+                  placeholder="corporate-business-advisory"
                 />
               </Field>
             </div>
 
             <Field
               label="Short Description *"
-              hint="A concise description for the public Business Solutions card."
+              hint="A concise description for the Business Solution card."
             >
               <textarea
                 className={textareaClass}
                 rows={3}
                 value={form.short_description}
                 onChange={(event) =>
-                  updateField("short_description", event.target.value)
+                  updateField(
+                    "short_description",
+                    event.target.value
+                  )
                 }
-                placeholder="Write a short introduction to this solution..."
+                placeholder="Write a short introduction to this business solution..."
                 required
               />
             </Field>
 
             <Field
               label="Full Description"
-              hint="Provide the complete solution description."
+              hint="Provide the complete description of this solution."
             >
               <textarea
                 className={textareaClass}
                 rows={5}
                 value={form.full_description}
                 onChange={(event) =>
-                  updateField("full_description", event.target.value)
+                  updateField(
+                    "full_description",
+                    event.target.value
+                  )
                 }
-                placeholder="Explain what this business solution includes..."
+                placeholder="Explain what this solution includes..."
               />
             </Field>
 
@@ -650,7 +609,7 @@ function BusinessSolutionsPage() {
                     updateField("help_with", event.target.value)
                   }
                   placeholder={
-                    "Business advisory\nCompliance support\nCorporate planning"
+                    "Business advisory\nCompliance support\nStrategic planning"
                   }
                 />
               </Field>
@@ -697,6 +656,7 @@ function BusinessSolutionsPage() {
                   <p className="text-sm font-semibold text-[#243653]">
                     Publish this solution
                   </p>
+
                   <p className="mt-1 text-xs text-slate-500">
                     Visible to website visitors when enabled.
                   </p>
@@ -761,20 +721,22 @@ function BusinessSolutionsPage() {
         </section>
       )}
 
-      {/* Search and solutions list */}
+      {/* Search and list */}
       <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
         <div className="flex flex-col gap-4 border-b border-slate-100 p-5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
           <div>
             <h2 className="font-bold text-[#243653]">
               All Business Solutions
             </h2>
+
             <p className="mt-1 text-xs text-slate-500">
-              Manage the business solutions available on your public website.
+              Manage solutions independently of your Services section.
             </p>
           </div>
 
           <div className="relative w-full sm:max-w-xs">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+
             <input
               value={search}
               onChange={(event) => setSearch(event.target.value)}
@@ -804,7 +766,6 @@ function BusinessSolutionsPage() {
 
             {!search && (
               <button
-                type="button"
                 onClick={openCreateForm}
                 className="mt-5 inline-flex items-center gap-2 rounded-lg bg-[#243653] px-4 py-2.5 text-sm font-semibold text-white"
               >
@@ -876,7 +837,6 @@ function BusinessSolutionsPage() {
 
                   <div className="flex shrink-0 flex-wrap items-center gap-2 border-t border-slate-100 pt-3 lg:border-0 lg:pt-0">
                     <button
-                      type="button"
                       onClick={() =>
                         toggleMutation.mutate({
                           id: solution.id,
@@ -896,11 +856,11 @@ function BusinessSolutionsPage() {
                       ) : (
                         <Eye className="h-4 w-4" />
                       )}
+
                       {solution.enabled ? "Hide" : "Publish"}
                     </button>
 
                     <button
-                      type="button"
                       onClick={() => openEditForm(solution)}
                       className="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-[#243653] transition hover:bg-slate-100"
                     >
@@ -909,7 +869,6 @@ function BusinessSolutionsPage() {
                     </button>
 
                     <button
-                      type="button"
                       onClick={() => handleDelete(solution)}
                       disabled={deleteMutation.isPending}
                       className="inline-flex items-center gap-2 rounded-lg border border-red-100 px-3 py-2 text-xs font-semibold text-red-600 transition hover:bg-red-50 disabled:opacity-50"
@@ -935,6 +894,39 @@ function BusinessSolutionsPage() {
           </span>
         </div>
       </section>
+    </div>
+  );
+}
+
+function SummaryCard({
+  label,
+  value,
+  icon,
+  accent = "navy",
+}: {
+  label: string;
+  value: number;
+  icon: ReactNode;
+  accent?: "navy" | "green" | "amber";
+}) {
+  const styles = {
+    navy: "bg-[#243653]/10 text-[#243653]",
+    green: "bg-emerald-50 text-emerald-600",
+    amber: "bg-amber-50 text-amber-600",
+  };
+
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+      <div className="flex items-center justify-between">
+        <p className="text-sm font-medium text-slate-500">{label}</p>
+        <div className={`rounded-xl p-2.5 ${styles[accent]}`}>
+          {icon}
+        </div>
+      </div>
+
+      <p className="mt-4 text-3xl font-bold tracking-tight text-[#243653]">
+        {value}
+      </p>
     </div>
   );
 }
