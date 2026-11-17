@@ -185,7 +185,7 @@ function WebsiteContentPage() {
             Content workspace
           </div>
 
-          <h2 className="text-xl font-semibold sm:text-2xl">
+          <h2 className="text-xl font-semibold sm:text-2xl text-white">
             Keep your website up to date
           </h2>
 

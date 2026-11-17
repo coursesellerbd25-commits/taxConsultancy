@@ -1,5 +1,5 @@
 
-CREATE TABLE IF NOT EXISTS public.business_solutions (
+CREATE TABLE IF NOT EXISTS public.services (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     title TEXT NOT NULL,
     slug TEXT NOT NULL UNIQUE,
@@ -13,11 +13,22 @@ CREATE TABLE IF NOT EXISTS public.business_solutions (
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-ALTER TABLE public.business_solutions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.services ENABLE ROW LEVEL SECURITY;
 
--- Public visitors can see published business solutions
-CREATE POLICY "Public can view enabled business solutions"
-ON public.business_solutions
+DROP POLICY IF EXISTS "Public can view enabled services"
+ON public.services;
+
+DROP POLICY IF EXISTS "Admins can insert services"
+ON public.services;
+
+DROP POLICY IF EXISTS "Admins can update services"
+ON public.services;
+
+DROP POLICY IF EXISTS "Admins can delete services"
+ON public.services;
+
+CREATE POLICY "Public can view enabled services"
+ON public.services
 FOR SELECT
 TO anon, authenticated
 USING (
@@ -25,18 +36,16 @@ USING (
     OR public.has_role(auth.uid(), 'admin'::public.app_role)
 );
 
--- Administrators can create business solutions
-CREATE POLICY "Admins can insert business solutions"
-ON public.business_solutions
+CREATE POLICY "Admins can insert services"
+ON public.services
 FOR INSERT
 TO authenticated
 WITH CHECK (
     public.has_role(auth.uid(), 'admin'::public.app_role)
 );
 
--- Administrators can update business solutions
-CREATE POLICY "Admins can update business solutions"
-ON public.business_solutions
+CREATE POLICY "Admins can update services"
+ON public.services
 FOR UPDATE
 TO authenticated
 USING (
@@ -46,17 +55,15 @@ WITH CHECK (
     public.has_role(auth.uid(), 'admin'::public.app_role)
 );
 
--- Administrators can delete business solutions
-CREATE POLICY "Admins can delete business solutions"
-ON public.business_solutions
+CREATE POLICY "Admins can delete services"
+ON public.services
 FOR DELETE
 TO authenticated
 USING (
     public.has_role(auth.uid(), 'admin'::public.app_role)
 );
 
-GRANT USAGE ON SCHEMA public TO anon, authenticated;
-GRANT SELECT ON public.business_solutions TO anon, authenticated;
-GRANT INSERT, UPDATE, DELETE ON public.business_solutions TO authenticated;
+GRANT SELECT ON public.services TO anon, authenticated;
+GRANT INSERT, UPDATE, DELETE ON public.services TO authenticated;
 
 NOTIFY pgrst, 'reload schema';
