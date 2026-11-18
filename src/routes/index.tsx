@@ -10,6 +10,13 @@ import { useCatalog } from "@/lib/catalog-data";
 import heroImg from "@/assets/hero-desk.jpg";
 import { VatCalculator } from "@/components/site/VatCalculator";
 import { ProfessionalStatistics } from "@/components/site/ProfessionalStatistics";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import {
+  defaultHomepageContent,
+  normalizeHomepageContent,
+} from "@/lib/homepage-content";
+
 
 export const Route = createFileRoute("/")({
   head: () => pageHead(
@@ -29,31 +36,47 @@ const values = [
 ];
 
 function Home() {
-  const site = useSite();
   const catalog = useCatalog();
+  const homepageQuery = useQuery({
+    queryKey: ["homepage-content"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("homepage_content")
+        .select("content")
+        .eq("id", 1)
+        .maybeSingle();
+
+      if (error) throw error;
+
+      return normalizeHomepageContent(data?.content ?? {});
+    },
+  });
+
+  const content = homepageQuery.data ?? defaultHomepageContent;
+  
   const faqPreview = faqGroups.flatMap((g) => g.items.slice(0, 1));
   return (
     <>
       <section className="relative overflow-hidden bg-navy-deep text-primary-foreground">
         <div className="container-page grid items-center gap-12 py-16 md:py-24 lg:grid-cols-[1.1fr_0.9fr]">
           <div>
-            <p className="eyebrow">Tax · VAT · Corporate Compliance</p>
+            <p className="eyebrow">T{content.hero.eyebrow}</p>
             <h1 className="mt-5 text-4xl font-semibold leading-[1.1] text-primary-foreground md:text-5xl lg:text-6xl">
-              Your Trusted Partner for Tax, VAT &amp; Corporate Compliance in Bangladesh
+              {content.hero.title}
             </h1>
             <p className="mt-6 max-w-xl text-lg text-primary-foreground/75">
-              Navigate taxation, VAT, business registration, accounting, and regulatory compliance with professional guidance tailored to your needs.
+              {content.hero.description}
             </p>
             <div className="mt-9 flex flex-col gap-3 sm:flex-row">
-              <Button asChild size="lg" className="bg-gold text-navy-deep hover:bg-gold-soft"><Link to="/consultation">Book a Consultation</Link></Button>
-              <Button asChild size="lg" variant="outline" className="border-primary-foreground/30 bg-transparent text-primary-foreground hover:bg-primary-foreground/10 hover:text-primary-foreground"><Link to="/services">Explore Our Services</Link></Button>
+              <Button asChild size="lg" className="bg-gold text-navy-deep hover:bg-gold-soft"><Link to="/consultation">{content.hero.primary_button}</Link></Button>
+              <Button asChild size="lg" variant="outline" className="border-primary-foreground/30 bg-transparent text-primary-foreground hover:bg-primary-foreground/10 hover:text-primary-foreground"><Link to="/services">{content.hero.secondary_button}</Link></Button>
             </div>
           </div>
           <div className="relative">
             <img src={heroImg} alt="Organized financial documents, a pen and a calculator on a consultant's desk" width={1280} height={1024} className="aspect-[4/3] w-full rounded-md object-cover" />
             <div className="absolute -bottom-5 left-5 hidden border-l-4 border-gold bg-background px-5 py-4 text-foreground shadow-lg sm:block">
-              <p className="text-xs uppercase tracking-widest text-muted-foreground">Serving</p>
-              <p className="font-serif text-lg text-primary">Individuals · Businesses · Investors</p>
+              <p className="text-xs uppercase tracking-widest text-muted-foreground">{content.hero.serving_label}</p>
+              <p className="font-serif text-lg text-primary">{content.hero.serving_text}</p>
             </div>
           </div>
         </div>

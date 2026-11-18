@@ -16,16 +16,14 @@ import {
   ClipboardList,
   Workflow,
   MessageSquareQuote,
-  Eye,
   Save,
   RotateCcw,
   Loader2,
   CheckCircle2,
   AlertCircle,
   ExternalLink,
-  ChevronRight,
-  Sparkles,
   Plus,
+  Trash2,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -33,62 +31,68 @@ export const Route = createFileRoute("/admin/content/home")({
   component: HomeContentPage,
 });
 
-/* -------------------------------------------------------
-   TYPES
-------------------------------------------------------- */
+/* -------------------------------------------------------------------------- */
+/* Types                                                                      */
+/* -------------------------------------------------------------------------- */
 
 type HeroContent = {
   eyebrow: string;
   title: string;
   description: string;
-  primary_cta: string;
-  secondary_cta: string;
+  primary_button: string;
+  secondary_button: string;
+  serving_label: string;
+  serving_text: string;
 };
 
 type Statistic = {
-  value: string;
+  id: "experience" | "clients" | "filings" | "areas";
   label: string;
+  value: number | null;
 };
 
-type Principle = {
+type AboutValue = {
+  id: string;
   title: string;
-  description: string;
+  text: string;
 };
 
 type AboutContent = {
   eyebrow: string;
   title: string;
   description: string;
+  mission_label: string;
   mission: string;
+  vision_label: string;
   vision: string;
-  credentials: string;
-  link_label: string;
-  principles: Principle[];
+  credentials: string[];
+  button_text: string;
+  values: AboutValue[];
 };
 
 type ProcessStep = {
   title: string;
-  description: string;
+  text: string;
 };
 
 type RegistrationContent = {
   eyebrow: string;
   title: string;
-  link_label: string;
-  disclaimer: string;
+  link_text: string;
   steps: ProcessStep[];
+  disclaimer: string;
 };
 
 type HowItWorksContent = {
   eyebrow: string;
   title: string;
-  disclaimer: string;
   steps: ProcessStep[];
+  disclaimer: string;
 };
 
 type Testimonial = {
   quote: string;
-  name: string;
+  client_name: string;
   service: string;
 };
 
@@ -107,21 +111,9 @@ type HomepageContent = {
   testimonials: TestimonialsContent;
 };
 
-type SectionKey =
-  | "hero"
-  | "statistics"
-  | "about"
-  | "registration"
-  | "how_it_works"
-  | "testimonials";
-
-/* -------------------------------------------------------
-   DEFAULT CONTENT
-
-   Used when homepage_content has no saved record yet.
-   These are initial editable values, not a replacement
-   for your public homepage layout.
-------------------------------------------------------- */
+/* -------------------------------------------------------------------------- */
+/* Default homepage content                                                   */
+/* -------------------------------------------------------------------------- */
 
 const defaultContent: HomepageContent = {
   hero: {
@@ -130,60 +122,69 @@ const defaultContent: HomepageContent = {
       "Your Trusted Partner for Tax, VAT & Corporate Compliance in Bangladesh",
     description:
       "Navigate taxation, VAT, business registration, accounting, and regulatory compliance with professional guidance tailored to your needs.",
-    primary_cta: "Book a Consultation",
-    secondary_cta: "Explore Our Services",
+    primary_button: "Book a Consultation",
+    secondary_button: "Explore Our Services",
+    serving_label: "Serving",
+    serving_text: "Individuals · Businesses · Investors",
   },
 
   statistics: [
     {
-      value: "—",
+      id: "experience",
       label: "Years of Professional Experience",
+      value: null,
     },
     {
-      value: "—",
+      id: "clients",
       label: "Clients Served",
+      value: null,
     },
     {
-      value: "—",
+      id: "filings",
       label: "Tax Returns & Compliance Filings",
+      value: null,
     },
     {
-      value: "—",
+      id: "areas",
       label: "Professional Service Areas",
+      value: null,
     },
   ],
 
   about: {
-    eyebrow: "About",
+    eyebrow: "About Corporate Tax Bangladesh",
     title: "Professional guidance, communicated clearly",
     description:
-      "Add your consultancy introduction here. Explain your professional background, experience, and how you help individuals and businesses manage their compliance requirements.",
-    mission:
-      "Mission: make compliance understandable and manageable.",
+      "Corporate Tax Bangladesh helps individuals, businesses and foreign investors understand and meet their tax, VAT and corporate compliance obligations in Bangladesh — with practical, transparent and confidential support.",
+    mission_label: "Mission:",
+    mission: "Make compliance understandable and manageable.",
+    vision_label: "Vision:",
     vision:
-      "Vision: a trusted, accessible compliance partner for every client we serve.",
-    credentials: "Add verified qualifications and experience.",
-    link_label: "Learn More About Us",
-    principles: [
+      "A trusted, accessible compliance partner for every client we serve.",
+    credentials: [
+      "Verified qualifications and experience",
+    ],
+    button_text: "Learn More About Us",
+    values: [
       {
+        id: "transparency",
         title: "Transparency",
-        description:
-          "Scope and fees are discussed clearly before work begins.",
+        text: "Scope and fees are discussed clearly before work begins.",
       },
       {
+        id: "client-focused",
         title: "Client-focused",
-        description:
-          "Every engagement starts by understanding your situation.",
+        text: "Every engagement starts by understanding your situation.",
       },
       {
+        id: "confidentiality",
         title: "Confidentiality",
-        description:
-          "Your information is used only to serve your request.",
+        text: "Your information is used only to serve your request.",
       },
       {
+        id: "professional-responsibility",
         title: "Professional responsibility",
-        description:
-          "General guidance only within verified professional scope.",
+        text: "General guidance only within verified professional scope.",
       },
     ],
   },
@@ -191,78 +192,51 @@ const defaultContent: HomepageContent = {
   registration: {
     eyebrow: "Company registration",
     title: "Your company registration journey",
-    link_label: "See the full process",
-    disclaimer:
-      "Registration and approval timelines depend on the relevant authorities and are not guaranteed.",
+    link_text: "See the full process",
     steps: [
       {
         title: "Initial consultation",
-        description:
-          "Understand the proposed business structure and requirements.",
+        text: "Understand the proposed business structure and requirements.",
       },
       {
         title: "Company name search",
-        description:
-          "Check proposed name availability and relevant requirements.",
+        text: "Check proposed name availability and relevant requirements.",
       },
       {
         title: "Document preparation",
-        description:
-          "Prepare the required company information and incorporation documents.",
+        text: "Prepare the required company information and incorporation documents.",
       },
       {
         title: "Application and submission",
-        description:
-          "Assist with the relevant RJSC submission process.",
+        text: "Assist with the relevant RJSC submission process.",
       },
       {
         title: "Registration and documentation",
-        description:
-          "Assist with obtaining the relevant incorporation documents.",
+        text: "Assist with obtaining the relevant incorporation documents.",
       },
       {
         title: "Post-registration compliance",
-        description:
-          "Explain TIN, trade license, BIN, bank account and other requirements.",
+        text: "Explain TIN, trade license, BIN, bank account and other requirements.",
       },
     ],
+    disclaimer:
+      "Registration and approval timelines depend on the relevant authorities and are not guaranteed.",
   },
 
   how_it_works: {
     eyebrow: "How it works",
     title: "A clear path from enquiry to completion",
+    steps: [
+      { title: "Choose your service", text: "" },
+      { title: "Submit an enquiry", text: "" },
+      { title: "Receive initial consultation", text: "" },
+      { title: "Discuss requirements and fees", text: "" },
+      { title: "Submit required documents", text: "" },
+      { title: "Receive professional assistance", text: "" },
+      { title: "Track progress and updates", text: "" },
+    ],
     disclaimer:
       "Submitting an enquiry does not create a professional-client relationship. Engagement and fees are agreed before any work begins.",
-    steps: [
-      {
-        title: "Choose your service",
-        description: "",
-      },
-      {
-        title: "Submit an enquiry",
-        description: "",
-      },
-      {
-        title: "Receive initial consultation",
-        description: "",
-      },
-      {
-        title: "Discuss requirements and fees",
-        description: "",
-      },
-      {
-        title: "Submit required documents",
-        description: "",
-      },
-      {
-        title: "Receive professional assistance",
-        description: "",
-      },
-      {
-        title: "Track progress and updates",
-        description: "",
-      },
-    ],
   },
 
   testimonials: {
@@ -270,37 +244,33 @@ const defaultContent: HomepageContent = {
     title: "What clients say",
     items: [
       {
-        quote: "Add verified client feedback here.",
-        name: "Client name",
-        service: "Service received",
+        quote: "",
+        client_name: "",
+        service: "",
       },
       {
-        quote: "Add verified client feedback here.",
-        name: "Client name",
-        service: "Service received",
+        quote: "",
+        client_name: "",
+        service: "",
       },
       {
-        quote: "Add verified client feedback here.",
-        name: "Client name",
-        service: "Service received",
+        quote: "",
+        client_name: "",
+        service: "",
       },
     ],
   },
 };
 
-/* -------------------------------------------------------
-   STYLES
-------------------------------------------------------- */
+/* -------------------------------------------------------------------------- */
+/* Styles and reusable fields                                                 */
+/* -------------------------------------------------------------------------- */
 
 const inputClass =
   "w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-[#243653] focus:ring-2 focus:ring-[#243653]/10";
 
 const textareaClass =
-  "w-full min-h-28 resize-y rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm leading-6 text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-[#243653] focus:ring-2 focus:ring-[#243653]/10";
-
-/* -------------------------------------------------------
-   REUSABLE FIELD
-------------------------------------------------------- */
+  "w-full min-h-24 resize-y rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm leading-6 text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-[#243653] focus:ring-2 focus:ring-[#243653]/10";
 
 function Field({
   label,
@@ -316,9 +286,7 @@ function Field({
       <label className="block text-sm font-semibold text-[#243653]">
         {label}
       </label>
-
       {children}
-
       {hint && (
         <p className="text-xs leading-5 text-slate-500">{hint}</p>
       )}
@@ -326,121 +294,149 @@ function Field({
   );
 }
 
-function TextField({
-  label,
-  value,
-  onChange,
-  placeholder,
-  multiline = false,
-  rows = 3,
-  hint,
-}: {
-  label: string;
-  value: string;
-  onChange: (value: string) => void;
-  placeholder?: string;
-  multiline?: boolean;
-  rows?: number;
-  hint?: string;
-}) {
-  return (
-    <Field label={label} hint={hint}>
-      {multiline ? (
-        <textarea
-          rows={rows}
-          className={textareaClass}
-          value={value}
-          onChange={(event) => onChange(event.target.value)}
-          placeholder={placeholder}
-        />
-      ) : (
-        <input
-          className={inputClass}
-          value={value}
-          onChange={(event) => onChange(event.target.value)}
-          placeholder={placeholder}
-        />
-      )}
-    </Field>
-  );
-}
-
-function EditorCard({
+function EditorSection({
+  icon: Icon,
+  number,
   title,
   description,
   children,
 }: {
+  icon: typeof Home;
+  number: string;
   title: string;
-  description?: string;
+  description: string;
   children: ReactNode;
 }) {
   return (
     <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-      <div className="border-b border-slate-100 px-5 py-5 sm:px-7">
-        <h2 className="font-bold text-[#243653]">{title}</h2>
-        {description && (
+      <div className="flex items-center gap-3 border-b border-slate-100 px-5 py-5 sm:px-7">
+        <div className="rounded-xl bg-[#243653]/10 p-2.5 text-[#243653]">
+          <Icon className="h-5 w-5" />
+        </div>
+
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-bold text-[#B7792B]">
+              {number}
+            </span>
+            <h2 className="font-bold text-[#243653]">{title}</h2>
+          </div>
           <p className="mt-1 text-xs leading-5 text-slate-500">
             {description}
           </p>
-        )}
+        </div>
       </div>
 
-      <div className="space-y-5 p-5 sm:p-7">{children}</div>
+      <div className="space-y-6 p-5 sm:p-7">{children}</div>
     </section>
   );
 }
 
-/* -------------------------------------------------------
-   SECTION NAVIGATION
-------------------------------------------------------- */
+function TextInput({
+  value,
+  onChange,
+  placeholder,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  placeholder?: string;
+}) {
+  return (
+    <input
+      className={inputClass}
+      value={value}
+      onChange={(event) => onChange(event.target.value)}
+      placeholder={placeholder}
+    />
+  );
+}
 
-const sections: {
-  id: SectionKey;
-  label: string;
-  description: string;
-  icon: typeof Home;
-}[] = [
-  {
-    id: "hero",
-    label: "Hero Section",
-    description: "Main headline and introduction",
-    icon: Type,
-  },
-  {
-    id: "statistics",
-    label: "Statistics",
-    description: "Business figures and highlights",
-    icon: BarChart3,
-  },
-  {
-    id: "about",
-    label: "About Section",
-    description: "Introduction, mission and values",
-    icon: Building2,
-  },
-  {
-    id: "registration",
-    label: "Registration Process",
-    description: "Company registration journey",
-    icon: ClipboardList,
-  },
-  {
-    id: "how_it_works",
-    label: "How It Works",
-    description: "Customer journey steps",
-    icon: Workflow,
-  },
-  {
-    id: "testimonials",
-    label: "Testimonials",
-    description: "Client feedback and names",
-    icon: MessageSquareQuote,
-  },
-];
+function TextArea({
+  value,
+  onChange,
+  rows = 4,
+  placeholder,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  rows?: number;
+  placeholder?: string;
+}) {
+  return (
+    <textarea
+      rows={rows}
+      className={textareaClass}
+      value={value}
+      onChange={(event) => onChange(event.target.value)}
+      placeholder={placeholder}
+    />
+  );
+}
 
-/* -------------------------------------------------------
-   MAIN PAGE
-------------------------------------------------------- */
+/* -------------------------------------------------------------------------- */
+/* Normalize stored JSONB content                                             */
+/* -------------------------------------------------------------------------- */
+
+function normalizeContent(raw: Record<string, any>): HomepageContent {
+  const defaults = defaultContent;
+
+  return {
+    hero: {
+      ...defaults.hero,
+      ...(raw.hero ?? {}),
+    },
+
+    statistics: defaults.statistics.map((item, index) => ({
+      ...item,
+      ...(raw.statistics?.[index] ?? {}),
+      id: item.id,
+    })),
+
+    about: {
+      ...defaults.about,
+      ...(raw.about ?? {}),
+      credentials: Array.isArray(raw.about?.credentials)
+        ? raw.about.credentials
+        : defaults.about.credentials,
+      values: defaults.about.values.map((item, index) => ({
+        ...item,
+        ...(raw.about?.values?.[index] ?? {}),
+        id: item.id,
+      })),
+    },
+
+    registration: {
+      ...defaults.registration,
+      ...(raw.registration ?? {}),
+      steps: defaults.registration.steps.map((item, index) => ({
+        ...item,
+        ...(raw.registration?.steps?.[index] ?? {}),
+      })),
+    },
+
+    how_it_works: {
+      ...defaults.how_it_works,
+      ...(raw.how_it_works ?? {}),
+      steps: defaults.how_it_works.steps.map((item, index) => ({
+        ...item,
+        ...(raw.how_it_works?.steps?.[index] ?? {}),
+      })),
+    },
+
+    testimonials: {
+      ...defaults.testimonials,
+      ...(raw.testimonials ?? {}),
+      items: defaults.testimonials.items.map((item, index) => ({
+        ...item,
+        ...(raw.testimonials?.items?.[index] ?? {}),
+      })),
+    },
+  };
+}
+
+/* -------------------------------------------------------------------------- */
+/* Main editor                                                                */
+/* -------------------------------------------------------------------------- */
 
 function HomeContentPage() {
   const queryClient = useQueryClient();
@@ -449,86 +445,40 @@ function HomeContentPage() {
   const [originalForm, setOriginalForm] =
     useState<HomepageContent>(defaultContent);
 
-  const [activeSection, setActiveSection] =
-    useState<SectionKey>("hero");
-
   const [notice, setNotice] = useState("");
   const [validationError, setValidationError] = useState("");
 
   const settingsQuery = useQuery({
-    queryKey: ["admin-home-content"],
+    queryKey: ["homepage-content"],
 
-    queryFn: async (): Promise<HomepageContent> => {
-      // The table may not yet exist in older generated Supabase types.
-      // Regenerate your Supabase types after creating homepage_content.
-      const { data, error } = await (supabase as any)
+    queryFn: async () => {
+      const { data, error } = await supabase
         .from("homepage_content")
-        .select("content")
+        .select("id, content, updated_at")
         .eq("id", 1)
         .maybeSingle();
 
       if (error) throw error;
 
-      if (!data?.content) {
-        return structuredClone(defaultContent);
-      }
-
-      return {
-        ...defaultContent,
-        ...data.content,
-        hero: {
-          ...defaultContent.hero,
-          ...data.content.hero,
-        },
-        about: {
-          ...defaultContent.about,
-          ...data.content.about,
-          principles:
-            data.content.about?.principles ??
-            defaultContent.about.principles,
-        },
-        registration: {
-          ...defaultContent.registration,
-          ...data.content.registration,
-          steps:
-            data.content.registration?.steps ??
-            defaultContent.registration.steps,
-        },
-        how_it_works: {
-          ...defaultContent.how_it_works,
-          ...data.content.how_it_works,
-          steps:
-            data.content.how_it_works?.steps ??
-            defaultContent.how_it_works.steps,
-        },
-        testimonials: {
-          ...defaultContent.testimonials,
-          ...data.content.testimonials,
-          items:
-            data.content.testimonials?.items ??
-            defaultContent.testimonials.items,
-        },
-        statistics:
-          data.content.statistics ?? defaultContent.statistics,
-      } as HomepageContent;
+      return normalizeContent(
+        (data?.content ?? {}) as Record<string, any>
+      );
     },
   });
 
   useEffect(() => {
     if (!settingsQuery.data) return;
 
-    const loaded = structuredClone(settingsQuery.data);
-
-    setForm(loaded);
-    setOriginalForm(loaded);
+    setForm(settingsQuery.data);
+    setOriginalForm(settingsQuery.data);
   }, [settingsQuery.data]);
 
   const hasChanges =
     JSON.stringify(form) !== JSON.stringify(originalForm);
 
-  function updateHero<K extends keyof HeroContent>(
-    field: K,
-    value: HeroContent[K]
+  function updateHero(
+    field: keyof HeroContent,
+    value: string
   ) {
     setForm((previous) => ({
       ...previous,
@@ -537,29 +487,12 @@ function HomeContentPage() {
         [field]: value,
       },
     }));
-
-    setNotice("");
-    setValidationError("");
+    clearMessages();
   }
 
-  function updateStatistic(
-    index: number,
-    field: keyof Statistic,
-    value: string
-  ) {
-    setForm((previous) => ({
-      ...previous,
-      statistics: previous.statistics.map((item, i) =>
-        i === index ? { ...item, [field]: value } : item
-      ),
-    }));
-
-    setNotice("");
-  }
-
-  function updateAbout<K extends keyof AboutContent>(
-    field: K,
-    value: AboutContent[K]
+  function updateAbout(
+    field: keyof AboutContent,
+    value: string | string[] | AboutValue[]
   ) {
     setForm((previous) => ({
       ...previous,
@@ -568,31 +501,12 @@ function HomeContentPage() {
         [field]: value,
       },
     }));
-
-    setNotice("");
+    clearMessages();
   }
 
-  function updatePrinciple(
-    index: number,
-    field: keyof Principle,
+  function updateRegistration(
+    field: keyof RegistrationContent,
     value: string
-  ) {
-    setForm((previous) => ({
-      ...previous,
-      about: {
-        ...previous.about,
-        principles: previous.about.principles.map((item, i) =>
-          i === index ? { ...item, [field]: value } : item
-        ),
-      },
-    }));
-
-    setNotice("");
-  }
-
-  function updateRegistration<K extends keyof RegistrationContent>(
-    field: K,
-    value: RegistrationContent[K]
   ) {
     setForm((previous) => ({
       ...previous,
@@ -601,13 +515,81 @@ function HomeContentPage() {
         [field]: value,
       },
     }));
+    clearMessages();
+  }
 
-    setNotice("");
+  function updateHowItWorks(
+    field: keyof HowItWorksContent,
+    value: string
+  ) {
+    setForm((previous) => ({
+      ...previous,
+      how_it_works: {
+        ...previous.how_it_works,
+        [field]: value,
+      },
+    }));
+    clearMessages();
+  }
+
+  function updateTestimonialHeading(
+    field: "eyebrow" | "title",
+    value: string
+  ) {
+    setForm((previous) => ({
+      ...previous,
+      testimonials: {
+        ...previous.testimonials,
+        [field]: value,
+      },
+    }));
+    clearMessages();
+  }
+
+  function updateStatistic(
+    index: number,
+    field: "label" | "value",
+    value: string
+  ) {
+    setForm((previous) => ({
+      ...previous,
+      statistics: previous.statistics.map((item, i) =>
+        i === index
+          ? {
+              ...item,
+              [field]:
+                field === "value"
+                  ? value.trim() === ""
+                    ? null
+                    : Math.max(0, Number(value))
+                  : value,
+            }
+          : item
+      ),
+    }));
+    clearMessages();
+  }
+
+  function updateAboutValue(
+    index: number,
+    field: "title" | "text",
+    value: string
+  ) {
+    setForm((previous) => ({
+      ...previous,
+      about: {
+        ...previous.about,
+        values: previous.about.values.map((item, i) =>
+          i === index ? { ...item, [field]: value } : item
+        ),
+      },
+    }));
+    clearMessages();
   }
 
   function updateRegistrationStep(
     index: number,
-    field: keyof ProcessStep,
+    field: "title" | "text",
     value: string
   ) {
     setForm((previous) => ({
@@ -619,28 +601,11 @@ function HomeContentPage() {
         ),
       },
     }));
-
-    setNotice("");
-  }
-
-  function updateHowItWorks<K extends keyof HowItWorksContent>(
-    field: K,
-    value: HowItWorksContent[K]
-  ) {
-    setForm((previous) => ({
-      ...previous,
-      how_it_works: {
-        ...previous.how_it_works,
-        [field]: value,
-      },
-    }));
-
-    setNotice("");
+    clearMessages();
   }
 
   function updateHowItWorksStep(
     index: number,
-    field: keyof ProcessStep,
     value: string
   ) {
     setForm((previous) => ({
@@ -648,27 +613,11 @@ function HomeContentPage() {
       how_it_works: {
         ...previous.how_it_works,
         steps: previous.how_it_works.steps.map((item, i) =>
-          i === index ? { ...item, [field]: value } : item
+          i === index ? { ...item, title: value } : item
         ),
       },
     }));
-
-    setNotice("");
-  }
-
-  function updateTestimonials<K extends keyof TestimonialsContent>(
-    field: K,
-    value: TestimonialsContent[K]
-  ) {
-    setForm((previous) => ({
-      ...previous,
-      testimonials: {
-        ...previous.testimonials,
-        [field]: value,
-      },
-    }));
-
-    setNotice("");
+    clearMessages();
   }
 
   function updateTestimonial(
@@ -685,13 +634,54 @@ function HomeContentPage() {
         ),
       },
     }));
+    clearMessages();
+  }
 
+  function updateCredential(index: number, value: string) {
+    setForm((previous) => ({
+      ...previous,
+      about: {
+        ...previous.about,
+        credentials: previous.about.credentials.map((item, i) =>
+          i === index ? value : item
+        ),
+      },
+    }));
+    clearMessages();
+  }
+
+  function addCredential() {
+    setForm((previous) => ({
+      ...previous,
+      about: {
+        ...previous.about,
+        credentials: [...previous.about.credentials, ""],
+      },
+    }));
+    clearMessages();
+  }
+
+  function removeCredential(index: number) {
+    setForm((previous) => ({
+      ...previous,
+      about: {
+        ...previous.about,
+        credentials: previous.about.credentials.filter(
+          (_, i) => i !== index
+        ),
+      },
+    }));
+    clearMessages();
+  }
+
+  function clearMessages() {
     setNotice("");
+    setValidationError("");
   }
 
   const saveMutation = useMutation({
     mutationFn: async (values: HomepageContent) => {
-      const { error } = await (supabase as any)
+      const { error } = await supabase
         .from("homepage_content")
         .upsert(
           {
@@ -699,59 +689,47 @@ function HomeContentPage() {
             content: values,
             updated_at: new Date().toISOString(),
           },
-          { onConflict: "id" }
+          {
+            onConflict: "id",
+          }
         );
 
       if (error) throw error;
     },
 
-    onSuccess: async (_, savedValues) => {
-      const saved = structuredClone(savedValues);
-
-      setOriginalForm(saved);
-      setForm(saved);
-      setNotice("Homepage content saved successfully.");
-      setValidationError("");
+    onSuccess: async (_, values) => {
+      setOriginalForm(values);
 
       await queryClient.invalidateQueries({
-        queryKey: ["admin-home-content"],
+        queryKey: ["homepage-content"],
       });
+
+      setNotice("Homepage content saved successfully.");
     },
   });
 
   function handleSave(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-
-    setNotice("");
-    setValidationError("");
+    clearMessages();
 
     if (!form.hero.title.trim()) {
-      setValidationError("Please enter the homepage hero headline.");
-      setActiveSection("hero");
+      setValidationError("Please enter a hero heading.");
       return;
     }
 
     if (!form.hero.description.trim()) {
-      setValidationError("Please enter the homepage hero description.");
-      setActiveSection("hero");
-      return;
-    }
-
-    if (form.statistics.some((item) => !item.label.trim())) {
-      setValidationError("Every statistic must have a label.");
-      setActiveSection("statistics");
+      setValidationError("Please enter a hero description.");
       return;
     }
 
     if (
       form.registration.steps.some(
-        (step) => !step.title.trim() || !step.description.trim()
+        (step) => !step.title.trim() || !step.text.trim()
       )
     ) {
       setValidationError(
-        "Every registration step needs a title and description."
+        "Please complete every registration step title and description."
       );
-      setActiveSection("registration");
       return;
     }
 
@@ -759,24 +737,8 @@ function HomeContentPage() {
       form.how_it_works.steps.some((step) => !step.title.trim())
     ) {
       setValidationError(
-        "Every How It Works step needs a title."
+        "Please complete every How It Works step title."
       );
-      setActiveSection("how_it_works");
-      return;
-    }
-
-    if (
-      form.testimonials.items.some(
-        (item) =>
-          !item.quote.trim() ||
-          !item.name.trim() ||
-          !item.service.trim()
-      )
-    ) {
-      setValidationError(
-        "Complete the quote, client name and service for every testimonial."
-      );
-      setActiveSection("testimonials");
       return;
     }
 
@@ -784,14 +746,13 @@ function HomeContentPage() {
   }
 
   function resetForm() {
-    setForm(structuredClone(originalForm));
-    setNotice("");
-    setValidationError("");
+    setForm(originalForm);
+    clearMessages();
   }
 
-  /* -----------------------------------------------------
-     LOADING / ERROR
-  ----------------------------------------------------- */
+  /* ------------------------------------------------------------------------ */
+  /* Loading and error states                                                 */
+  /* ------------------------------------------------------------------------ */
 
   if (settingsQuery.isLoading) {
     return (
@@ -829,13 +790,14 @@ function HomeContentPage() {
     );
   }
 
-  /* -----------------------------------------------------
-     MAIN LAYOUT
-  ----------------------------------------------------- */
+  /* ------------------------------------------------------------------------ */
+  /* Editor UI                                                                */
+  /* ------------------------------------------------------------------------ */
 
   return (
     <div className="mx-auto w-full max-w-7xl space-y-7 pb-12">
       {/* Page header */}
+
       <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
         <div>
           <div className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-[#B7792B]">
@@ -844,12 +806,12 @@ function HomeContentPage() {
           </div>
 
           <h1 className="text-2xl font-bold tracking-tight text-[#243653] sm:text-3xl">
-            Homepage Management
+            Homepage Content
           </h1>
 
           <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
-            Manage the text displayed across your homepage without
-            changing its existing design or layout.
+            Manage the text and content displayed across your homepage.
+            Your existing website layout and design will remain unchanged.
           </p>
         </div>
 
@@ -864,7 +826,8 @@ function HomeContentPage() {
         </a>
       </div>
 
-      {/* Notifications */}
+      {/* Messages */}
+
       {notice && (
         <div className="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
           <CheckCircle2 className="h-4 w-4 shrink-0" />
@@ -879,649 +842,547 @@ function HomeContentPage() {
         </div>
       )}
 
-      {/* Section navigation */}
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-        {sections.map((section) => {
-          const Icon = section.icon;
-          const active = activeSection === section.id;
-
-          return (
-            <button
-              key={section.id}
-              type="button"
-              onClick={() => setActiveSection(section.id)}
-              className={`flex items-center gap-3 rounded-2xl border p-4 text-left transition ${
-                active
-                  ? "border-[#243653] bg-[#243653] text-white shadow-md"
-                  : "border-slate-200 bg-white text-[#243653] hover:border-[#243653]/40 hover:bg-slate-50"
-              }`}
-            >
-              <span
-                className={`rounded-xl p-2.5 ${
-                  active
-                    ? "bg-white/10 text-[#E2B96F]"
-                    : "bg-[#243653]/10 text-[#243653]"
-                }`}
-              >
-                <Icon className="h-5 w-5" />
-              </span>
-
-              <span className="min-w-0 flex-1">
-                <span className="block text-sm font-bold">
-                  {section.label}
-                </span>
-                <span
-                  className={`mt-1 block text-xs ${
-                    active ? "text-slate-300" : "text-slate-500"
-                  }`}
-                >
-                  {section.description}
-                </span>
-              </span>
-
-              <ChevronRight className="h-4 w-4 shrink-0" />
-            </button>
-          );
-        })}
-      </div>
-
-      {/* Editor */}
       <form onSubmit={handleSave} className="space-y-6">
-        {/* HERO */}
-        {activeSection === "hero" && (
-          <>
-            <EditorCard
-              title="Hero Section"
-              description="Edit the main introduction visitors see at the top of your homepage."
-            >
-              <TextField
-                label="Eyebrow / Small Label"
-                value={form.hero.eyebrow}
-                onChange={(value) => updateHero("eyebrow", value)}
-                placeholder="Tax · VAT · Corporate Compliance"
+        {/* 01. HERO */}
+
+        <EditorSection
+          icon={Type}
+          number="01"
+          title="Hero Section"
+          description="Manage the main banner visitors see when they first open your website."
+        >
+          <Field label="Eyebrow text">
+            <TextInput
+              value={form.hero.eyebrow}
+              onChange={(value) => updateHero("eyebrow", value)}
+            />
+          </Field>
+
+          <Field
+            label="Main heading"
+            hint="This is the main homepage headline."
+          >
+            <TextArea
+              rows={3}
+              value={form.hero.title}
+              onChange={(value) => updateHero("title", value)}
+            />
+          </Field>
+
+          <Field label="Description">
+            <TextArea
+              value={form.hero.description}
+              onChange={(value) => updateHero("description", value)}
+              rows={4}
+            />
+          </Field>
+
+          <div className="grid gap-5 sm:grid-cols-2">
+            <Field label="Primary button text">
+              <TextInput
+                value={form.hero.primary_button}
+                onChange={(value) =>
+                  updateHero("primary_button", value)
+                }
               />
+            </Field>
 
-              <TextField
-                label="Main Headline"
-                value={form.hero.title}
-                onChange={(value) => updateHero("title", value)}
-                multiline
-                rows={3}
+            <Field label="Secondary button text">
+              <TextInput
+                value={form.hero.secondary_button}
+                onChange={(value) =>
+                  updateHero("secondary_button", value)
+                }
               />
+            </Field>
+          </div>
 
-              <TextField
-                label="Description"
-                value={form.hero.description}
-                onChange={(value) => updateHero("description", value)}
-                multiline
-                rows={4}
+          <div className="grid gap-5 sm:grid-cols-2">
+            <Field label="Serving label">
+              <TextInput
+                value={form.hero.serving_label}
+                onChange={(value) =>
+                  updateHero("serving_label", value)
+                }
               />
+            </Field>
 
-              <div className="grid gap-5 md:grid-cols-2">
-                <TextField
-                  label="Primary Button Label"
-                  value={form.hero.primary_cta}
-                  onChange={(value) => updateHero("primary_cta", value)}
-                  placeholder="Book a Consultation"
-                />
+            <Field label="Serving text">
+              <TextInput
+                value={form.hero.serving_text}
+                onChange={(value) =>
+                  updateHero("serving_text", value)
+                }
+              />
+            </Field>
+          </div>
 
-                <TextField
-                  label="Secondary Button Label"
-                  value={form.hero.secondary_cta}
-                  onChange={(value) => updateHero("secondary_cta", value)}
-                  placeholder="Explore Our Services"
-                />
-              </div>
-            </EditorCard>
+        {/* 02. STATISTICS */}
 
-            <EditorCard title="Hero Preview">
-              <div className="rounded-2xl bg-[#243653] px-6 py-10 text-center sm:px-12">
-                <p className="mb-4 text-xs font-semibold uppercase tracking-[0.2em] text-[#E2B96F]">
-                  {form.hero.eyebrow || "Your hero label"}
-                </p>
-
-                <h2 className="mx-auto max-w-3xl text-2xl font-bold leading-tight text-white sm:text-4xl">
-                  {form.hero.title || "Your headline"}
-                </h2>
-
-                <p className="mx-auto mt-5 max-w-2xl text-sm leading-7 text-slate-200">
-                  {form.hero.description || "Your description"}
-                </p>
-
-                <div className="mt-7 flex flex-wrap justify-center gap-3">
-                  <span className="rounded-lg bg-[#B7792B] px-5 py-3 text-sm font-semibold text-white">
-                    {form.hero.primary_cta}
-                  </span>
-                  <span className="rounded-lg border border-white/30 px-5 py-3 text-sm font-semibold text-white">
-                    {form.hero.secondary_cta}
+        <EditorSection
+          icon={BarChart3}
+          number="02"
+          title="Professional Statistics"
+          description="Edit the four statistic values and their labels. Only enter figures you can verify."
+        >
+          <div className="grid gap-4 sm:grid-cols-2">
+            {form.statistics.map((statistic, index) => (
+              <div
+                key={statistic.id}
+                className="space-y-4 rounded-xl border border-slate-200 p-4"
+              >
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-bold text-[#243653]">
+                    Statistic {index + 1}
+                  </h3>
+                  <span className="text-xs text-slate-400">
+                    {statistic.id}
                   </span>
                 </div>
-              </div>
-            </EditorCard>
-          </>
-        )}
 
-        {/* STATISTICS */}
-        {activeSection === "statistics" && (
-          <EditorCard
-            title="Homepage Statistics"
-            description="Edit the four statistics displayed below the hero section. Use verified figures only."
-          >
-            <div className="grid gap-5 md:grid-cols-2">
-              {form.statistics.map((stat, index) => (
-                <div
-                  key={index}
-                  className="space-y-4 rounded-xl border border-slate-200 bg-slate-50 p-4"
-                >
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-sm font-bold text-[#243653]">
-                      Statistic {index + 1}
-                    </h3>
-                    <BarChart3 className="h-4 w-4 text-[#B7792B]" />
-                  </div>
-
-                  <TextField
-                    label="Value"
-                    value={stat.value}
-                    onChange={(value) =>
-                      updateStatistic(index, "value", value)
+                <Field label="Statistic value">
+                  <input
+                    type="number"
+                    min="0"
+                    step="1"
+                    className={inputClass}
+                    value={statistic.value ?? ""}
+                    onChange={(event) =>
+                      updateStatistic(
+                        index,
+                        "value",
+                        event.target.value
+                      )
                     }
-                    placeholder="e.g. 10+"
+                    placeholder="Leave empty if not verified"
                   />
+                </Field>
 
-                  <TextField
-                    label="Label"
-                    value={stat.label}
+                <Field label="Statistic label">
+                  <TextInput
+                    value={statistic.label}
                     onChange={(value) =>
                       updateStatistic(index, "label", value)
                     }
-                    placeholder="e.g. Clients Served"
                   />
+                </Field>
+              </div>
+            ))}
+          </div>
+
+          <p className="text-xs leading-5 text-slate-500">
+            Empty statistic values will remain unpublished as figures.
+            The existing statistic icons and animation are preserved.
+          </p>
+        </EditorSection>
+
+        {/* 03. ABOUT */}
+
+        <EditorSection
+          icon={Building2}
+          number="03"
+          title="About Section"
+          description="Manage your homepage introduction, mission, vision, credentials, and business values."
+        >
+          <Field label="Eyebrow text">
+            <TextInput
+              value={form.about.eyebrow}
+              onChange={(value) => updateAbout("eyebrow", value)}
+            />
+          </Field>
+
+          <Field label="Section heading">
+            <TextInput
+              value={form.about.title}
+              onChange={(value) => updateAbout("title", value)}
+            />
+          </Field>
+
+          <Field label="About description">
+            <TextArea
+              value={form.about.description}
+              onChange={(value) =>
+                updateAbout("description", value)
+              }
+              rows={5}
+            />
+          </Field>
+
+          <div className="grid gap-5 sm:grid-cols-2">
+            <Field label="Mission label">
+              <TextInput
+                value={form.about.mission_label}
+                onChange={(value) =>
+                  updateAbout("mission_label", value)
+                }
+              />
+            </Field>
+
+            <Field label="Vision label">
+              <TextInput
+                value={form.about.vision_label}
+                onChange={(value) =>
+                  updateAbout("vision_label", value)
+                }
+              />
+            </Field>
+
+            <Field label="Mission statement">
+              <TextArea
+                value={form.about.mission}
+                onChange={(value) =>
+                  updateAbout("mission", value)
+                }
+                rows={3}
+              />
+            </Field>
+
+            <Field label="Vision statement">
+              <TextArea
+                value={form.about.vision}
+                onChange={(value) =>
+                  updateAbout("vision", value)
+                }
+                rows={3}
+              />
+            </Field>
+          </div>
+
+          <Field label="About button text">
+            <TextInput
+              value={form.about.button_text}
+              onChange={(value) =>
+                updateAbout("button_text", value)
+              }
+            />
+          </Field>
+
+          <div className="space-y-4 border-t border-slate-100 pt-6">
+            <div>
+              <h3 className="font-bold text-[#243653]">
+                Credentials and qualifications
+              </h3>
+              <p className="mt-1 text-xs text-slate-500">
+                Add or remove the short credentials displayed below
+                your About description.
+              </p>
+            </div>
+
+            {form.about.credentials.map((credential, index) => (
+              <div key={index} className="flex gap-2">
+                <input
+                  className={inputClass}
+                  value={credential}
+                  onChange={(event) =>
+                    updateCredential(index, event.target.value)
+                  }
+                  placeholder="Enter a verified qualification or credential"
+                />
+
+                <button
+                  type="button"
+                  onClick={() => removeCredential(index)}
+                  className="shrink-0 rounded-xl border border-red-200 p-3 text-red-600 transition hover:bg-red-50"
+                  aria-label="Remove credential"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              </div>
+            ))}
+
+            <button
+              type="button"
+              onClick={addCredential}
+              className="inline-flex items-center gap-2 rounded-lg border border-dashed border-slate-300 px-4 py-2.5 text-sm font-semibold text-[#243653] hover:border-[#B7792B] hover:bg-slate-50"
+            >
+              <Plus className="h-4 w-4" />
+              Add Credential
+            </button>
+          </div>
+
+          <div className="space-y-4 border-t border-slate-100 pt-6">
+            <div>
+              <h3 className="font-bold text-[#243653]">
+                Business values
+              </h3>
+              <p className="mt-1 text-xs text-slate-500">
+                Edit the four value cards displayed beside the About
+                introduction.
+              </p>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              {form.about.values.map((item, index) => (
+                <div
+                  key={item.id}
+                  className="space-y-3 rounded-xl border border-slate-200 p-4"
+                >
+                  <h4 className="text-sm font-bold text-[#243653]">
+                    Value card {index + 1}
+                  </h4>
+
+                  <Field label="Card title">
+                    <TextInput
+                      value={item.title}
+                      onChange={(value) =>
+                        updateAboutValue(index, "title", value)
+                      }
+                    />
+                  </Field>
+
+                  <Field label="Card description">
+                    <TextArea
+                      value={item.text}
+                      onChange={(value) =>
+                        updateAboutValue(index, "text", value)
+                      }
+                      rows={3}
+                    />
+                  </Field>
                 </div>
               ))}
             </div>
+          </div>
+        </EditorSection>
 
-            <p className="text-xs leading-5 text-slate-500">
-              The four statistic cards are kept in their current
-              homepage positions. You can edit their values and labels.
-            </p>
-          </EditorCard>
-        )}
+        {/* 04. REGISTRATION */}
 
-        {/* ABOUT */}
-        {activeSection === "about" && (
-          <>
-            <EditorCard
-              title="About Section"
-              description="Manage the introduction and business identity displayed in the homepage About section."
-            >
-              <TextField
-                label="Section Label"
-                value={form.about.eyebrow}
-                onChange={(value) => updateAbout("eyebrow", value)}
-              />
+        <EditorSection
+          icon={ClipboardList}
+          number="04"
+          title="Company Registration Process"
+          description="Edit the registration section heading, its six steps, and the disclaimer."
+        >
+          <Field label="Eyebrow text">
+            <TextInput
+              value={form.registration.eyebrow}
+              onChange={(value) =>
+                updateRegistration("eyebrow", value)
+              }
+            />
+          </Field>
 
-              <TextField
-                label="Section Heading"
-                value={form.about.title}
-                onChange={(value) => updateAbout("title", value)}
-                multiline
-              />
+          <Field label="Section heading">
+            <TextInput
+              value={form.registration.title}
+              onChange={(value) =>
+                updateRegistration("title", value)
+              }
+            />
+          </Field>
 
-              <TextField
-                label="Introduction"
-                value={form.about.description}
-                onChange={(value) => updateAbout("description", value)}
-                multiline
-                rows={5}
-              />
+          <Field label="Process link text">
+            <TextInput
+              value={form.registration.link_text}
+              onChange={(value) =>
+                updateRegistration("link_text", value)
+              }
+            />
+          </Field>
 
-              <TextField
-                label="Mission Statement"
-                value={form.about.mission}
-                onChange={(value) => updateAbout("mission", value)}
-                multiline
-                rows={3}
-              />
+          <div className="space-y-4 border-t border-slate-100 pt-6">
+            <h3 className="font-bold text-[#243653]">
+              Registration steps
+            </h3>
 
-              <TextField
-                label="Vision Statement"
-                value={form.about.vision}
-                onChange={(value) => updateAbout("vision", value)}
-                multiline
-                rows={3}
-              />
+            {form.registration.steps.map((step, index) => (
+              <div
+                key={index}
+                className="space-y-3 rounded-xl border border-slate-200 p-4"
+              >
+                <h4 className="text-sm font-bold text-[#B7792B]">
+                  Step {String(index + 1).padStart(2, "0")}
+                </h4>
 
-              <TextField
-                label="Qualifications / Experience Text"
-                value={form.about.credentials}
-                onChange={(value) => updateAbout("credentials", value)}
-                multiline
-                rows={3}
-              />
-
-              <TextField
-                label="About Button Label"
-                value={form.about.link_label}
-                onChange={(value) => updateAbout("link_label", value)}
-              />
-            </EditorCard>
-
-            <EditorCard
-              title="Business Principles"
-              description="Edit the four value cards displayed below the About introduction."
-            >
-              {form.about.principles.map((item, index) => (
-                <div
-                  key={index}
-                  className="space-y-4 rounded-xl border border-slate-200 p-4"
-                >
-                  <h3 className="text-sm font-bold text-[#243653]">
-                    Principle {index + 1}
-                  </h3>
-
-                  <TextField
-                    label="Title"
-                    value={item.title}
-                    onChange={(value) =>
-                      updatePrinciple(index, "title", value)
-                    }
-                  />
-
-                  <TextField
-                    label="Description"
-                    value={item.description}
-                    onChange={(value) =>
-                      updatePrinciple(index, "description", value)
-                    }
-                    multiline
-                  />
-                </div>
-              ))}
-            </EditorCard>
-          </>
-        )}
-
-        {/* REGISTRATION PROCESS */}
-        {activeSection === "registration" && (
-          <>
-            <EditorCard
-              title="Registration Process"
-              description="Edit the company registration journey section and its six steps."
-            >
-              <TextField
-                label="Section Label"
-                value={form.registration.eyebrow}
-                onChange={(value) =>
-                  updateRegistration("eyebrow", value)
-                }
-              />
-
-              <TextField
-                label="Section Heading"
-                value={form.registration.title}
-                onChange={(value) =>
-                  updateRegistration("title", value)
-                }
-                multiline
-              />
-
-              <TextField
-                label="Process Link Label"
-                value={form.registration.link_label}
-                onChange={(value) =>
-                  updateRegistration("link_label", value)
-                }
-              />
-
-              {form.registration.steps.map((step, index) => (
-                <div
-                  key={index}
-                  className="space-y-4 rounded-xl border border-slate-200 bg-slate-50 p-4"
-                >
-                  <div className="flex items-center gap-3">
-                    <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#243653] text-sm font-bold text-white">
-                      {String(index + 1).padStart(2, "0")}
-                    </span>
-
-                    <h3 className="text-sm font-bold text-[#243653]">
-                      Registration Step {index + 1}
-                    </h3>
-                  </div>
-
-                  <TextField
-                    label="Step Title"
+                <Field label="Step title">
+                  <TextInput
                     value={step.title}
                     onChange={(value) =>
                       updateRegistrationStep(index, "title", value)
                     }
                   />
+                </Field>
 
-                  <TextField
-                    label="Step Description"
-                    value={step.description}
+                <Field label="Step description">
+                  <TextArea
+                    value={step.text}
                     onChange={(value) =>
-                      updateRegistrationStep(
-                        index,
-                        "description",
-                        value
-                      )
+                      updateRegistrationStep(index, "text", value)
                     }
-                    multiline
+                    rows={2}
                   />
-                </div>
-              ))}
+                </Field>
+              </div>
+            ))}
+          </div>
 
-              <TextField
-                label="Disclaimer"
-                value={form.registration.disclaimer}
-                onChange={(value) =>
-                  updateRegistration("disclaimer", value)
-                }
-                multiline
-                rows={3}
-              />
-            </EditorCard>
-          </>
-        )}
+          <Field label="Registration disclaimer">
+            <TextArea
+              value={form.registration.disclaimer}
+              onChange={(value) =>
+                updateRegistration("disclaimer", value)
+              }
+              rows={3}
+            />
+          </Field>
+        </EditorSection>
 
-        {/* HOW IT WORKS */}
-        {activeSection === "how_it_works" && (
-          <EditorCard
-            title="How It Works"
-            description="Manage the customer journey displayed on your homepage."
-          >
-            <TextField
-              label="Section Label"
+        {/* 05. HOW IT WORKS */}
+
+        <EditorSection
+          icon={Workflow}
+          number="05"
+          title="How It Works"
+          description="Edit the seven steps that explain how clients work with your consultancy."
+        >
+          <Field label="Eyebrow text">
+            <TextInput
               value={form.how_it_works.eyebrow}
               onChange={(value) =>
                 updateHowItWorks("eyebrow", value)
               }
             />
+          </Field>
 
-            <TextField
-              label="Section Heading"
+          <Field label="Section heading">
+            <TextInput
               value={form.how_it_works.title}
               onChange={(value) =>
                 updateHowItWorks("title", value)
               }
-              multiline
             />
+          </Field>
+
+          <div className="space-y-4 border-t border-slate-100 pt-6">
+            <h3 className="font-bold text-[#243653]">
+              Process steps
+            </h3>
 
             {form.how_it_works.steps.map((step, index) => (
               <div
                 key={index}
-                className="space-y-4 rounded-xl border border-slate-200 bg-slate-50 p-4"
+                className="rounded-xl border border-slate-200 p-4"
               >
-                <div className="flex items-center gap-3">
-                  <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#243653] text-sm font-bold text-white">
-                    {index + 1}
-                  </span>
+                <h4 className="mb-3 text-sm font-bold text-[#B7792B]">
+                  Step {index + 1}
+                </h4>
 
-                  <h3 className="text-sm font-bold text-[#243653]">
-                    Journey Step {index + 1}
-                  </h3>
-                </div>
-
-                <TextField
-                  label="Step Title"
-                  value={step.title}
-                  onChange={(value) =>
-                    updateHowItWorksStep(index, "title", value)
-                  }
-                />
-
-                <TextField
-                  label="Description (Optional)"
-                  value={step.description}
-                  onChange={(value) =>
-                    updateHowItWorksStep(
-                      index,
-                      "description",
-                      value
-                    )
-                  }
-                  multiline
-                />
+                <Field label="Step title">
+                  <TextInput
+                    value={step.title}
+                    onChange={(value) =>
+                      updateHowItWorksStep(index, value)
+                    }
+                  />
+                </Field>
               </div>
             ))}
+          </div>
 
-            <TextField
-              label="Disclaimer"
+          <Field label="Process disclaimer">
+            <TextArea
               value={form.how_it_works.disclaimer}
               onChange={(value) =>
                 updateHowItWorks("disclaimer", value)
               }
-              multiline
               rows={3}
             />
-          </EditorCard>
-        )}
+          </Field>
+        </EditorSection>
 
-        {/* TESTIMONIALS */}
-        {activeSection === "testimonials" && (
-          <EditorCard
-            title="Client Testimonials"
-            description="Edit the three testimonial cards currently displayed on your homepage. Only publish feedback shared with permission."
-          >
-            <TextField
-              label="Section Label"
+        {/* 06. TESTIMONIALS */}
+
+        <EditorSection
+          icon={MessageSquareQuote}
+          number="06"
+          title="Testimonials"
+          description="Manage the client feedback displayed on your homepage. Only publish testimonials shared with permission."
+        >
+          <Field label="Eyebrow text">
+            <TextInput
               value={form.testimonials.eyebrow}
               onChange={(value) =>
-                updateTestimonials("eyebrow", value)
+                updateTestimonialHeading("eyebrow", value)
               }
             />
+          </Field>
 
-            <TextField
-              label="Section Heading"
+          <Field label="Section heading">
+            <TextInput
               value={form.testimonials.title}
               onChange={(value) =>
-                updateTestimonials("title", value)
+                updateTestimonialHeading("title", value)
               }
             />
+          </Field>
+
+          <div className="space-y-4 border-t border-slate-100 pt-6">
+            <h3 className="font-bold text-[#243653]">
+              Client testimonials
+            </h3>
 
             {form.testimonials.items.map((item, index) => (
               <div
                 key={index}
-                className="space-y-4 rounded-xl border border-slate-200 bg-slate-50 p-4"
+                className="space-y-3 rounded-xl border border-slate-200 p-4"
               >
-                <div className="flex items-center gap-3">
-                  <MessageSquareQuote className="h-5 w-5 text-[#B7792B]" />
-                  <h3 className="text-sm font-bold text-[#243653]">
-                    Testimonial {index + 1}
-                  </h3>
-                </div>
+                <h4 className="text-sm font-bold text-[#B7792B]">
+                  Testimonial {index + 1}
+                </h4>
 
-                <TextField
-                  label="Client Feedback / Quote"
-                  value={item.quote}
-                  onChange={(value) =>
-                    updateTestimonial(index, "quote", value)
-                  }
-                  multiline
-                  rows={4}
-                />
-
-                <div className="grid gap-4 md:grid-cols-2">
-                  <TextField
-                    label="Client Name"
-                    value={item.name}
+                <Field label="Client feedback">
+                  <TextArea
+                    value={item.quote}
                     onChange={(value) =>
-                      updateTestimonial(index, "name", value)
+                      updateTestimonial(index, "quote", value)
                     }
+                    rows={4}
+                    placeholder="Enter the client's feedback..."
                   />
+                </Field>
 
-                  <TextField
-                    label="Service Received"
-                    value={item.service}
-                    onChange={(value) =>
-                      updateTestimonial(index, "service", value)
-                    }
-                  />
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <Field label="Client name">
+                    <TextInput
+                      value={item.client_name}
+                      onChange={(value) =>
+                        updateTestimonial(
+                          index,
+                          "client_name",
+                          value
+                        )
+                      }
+                      placeholder="Client name"
+                    />
+                  </Field>
+
+                  <Field label="Service received">
+                    <TextInput
+                      value={item.service}
+                      onChange={(value) =>
+                        updateTestimonial(index, "service", value)
+                      }
+                      placeholder="e.g. Corporate Tax Consultancy"
+                    />
+                  </Field>
                 </div>
               </div>
             ))}
-          </EditorCard>
-        )}
-
-        {/* TEXT PREVIEW */}
-        <EditorCard
-          title="Current Section Preview"
-          description="A quick text preview of the section you are editing."
-        >
-          {activeSection === "hero" && (
-            <div className="space-y-3">
-              <p className="text-xs font-bold uppercase tracking-widest text-[#B7792B]">
-                {form.hero.eyebrow}
-              </p>
-              <h2 className="text-2xl font-bold text-[#243653]">
-                {form.hero.title}
-              </h2>
-              <p className="text-sm leading-7 text-slate-600">
-                {form.hero.description}
-              </p>
-              <p className="text-sm font-semibold text-[#243653]">
-                {form.hero.primary_cta} · {form.hero.secondary_cta}
-              </p>
-            </div>
-          )}
-
-          {activeSection === "statistics" && (
-            <div className="grid grid-cols-2 gap-3">
-              {form.statistics.map((item, index) => (
-                <div
-                  key={index}
-                  className="rounded-xl border border-slate-200 p-4"
-                >
-                  <p className="text-2xl font-bold text-[#243653]">
-                    {item.value}
-                  </p>
-                  <p className="mt-1 text-xs text-slate-500">
-                    {item.label}
-                  </p>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {activeSection === "about" && (
-            <div className="space-y-3">
-              <p className="text-xs font-bold uppercase tracking-widest text-[#B7792B]">
-                {form.about.eyebrow}
-              </p>
-              <h2 className="text-2xl font-bold text-[#243653]">
-                {form.about.title}
-              </h2>
-              <p className="whitespace-pre-wrap text-sm leading-7 text-slate-600">
-                {form.about.description}
-              </p>
-              <p className="text-sm text-slate-600">
-                {form.about.mission}
-              </p>
-              <p className="text-sm text-slate-600">
-                {form.about.vision}
-              </p>
-              <div className="grid gap-3 sm:grid-cols-2">
-                {form.about.principles.map((item, index) => (
-                  <div
-                    key={index}
-                    className="rounded-xl border border-slate-200 p-4"
-                  >
-                    <p className="font-semibold text-[#243653]">
-                      {item.title}
-                    </p>
-                    <p className="mt-1 text-xs leading-5 text-slate-500">
-                      {item.description}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {activeSection === "registration" && (
-            <div className="space-y-4">
-              <h2 className="text-xl font-bold text-[#243653]">
-                {form.registration.title}
-              </h2>
-              {form.registration.steps.map((step, index) => (
-                <div key={index} className="flex gap-3">
-                  <span className="font-bold text-[#B7792B]">
-                    {String(index + 1).padStart(2, "0")}
-                  </span>
-                  <div>
-                    <p className="font-semibold text-[#243653]">
-                      {step.title}
-                    </p>
-                    <p className="text-sm text-slate-500">
-                      {step.description}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {activeSection === "how_it_works" && (
-            <div className="space-y-3">
-              <h2 className="text-xl font-bold text-[#243653]">
-                {form.how_it_works.title}
-              </h2>
-              {form.how_it_works.steps.map((step, index) => (
-                <div key={index} className="flex gap-3">
-                  <span className="font-bold text-[#B7792B]">
-                    {index + 1}.
-                  </span>
-                  <div>
-                    <p className="font-semibold text-[#243653]">
-                      {step.title}
-                    </p>
-                    {step.description && (
-                      <p className="text-sm text-slate-500">
-                        {step.description}
-                      </p>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {activeSection === "testimonials" && (
-            <div className="space-y-4">
-              <h2 className="text-xl font-bold text-[#243653]">
-                {form.testimonials.title}
-              </h2>
-              {form.testimonials.items.map((item, index) => (
-                <blockquote
-                  key={index}
-                  className="rounded-xl border border-slate-200 p-4"
-                >
-                  <p className="text-sm leading-6 text-slate-600">
-                    “{item.quote}”
-                  </p>
-                  <p className="mt-3 text-sm font-bold text-[#243653]">
-                    {item.name}
-                  </p>
-                  <p className="text-xs text-slate-500">
-                    {item.service}
-                  </p>
-                </blockquote>
-              ))}
-            </div>
-          )}
-        </EditorCard>
+          </div>
+        </EditorSection>
 
         {/* SAVE CONTROLS */}
+
         <div className="sticky bottom-4 z-10 flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white/95 p-4 shadow-lg backdrop-blur sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="text-sm font-semibold text-[#243653]">
               {hasChanges ? "Unsaved changes" : "All changes saved"}
             </p>
+
             <p className="mt-1 text-xs text-slate-500">
               {hasChanges
-                ? "Save your changes when you are ready."
-                : "Your current editor content is saved."}
+                ? "Save your changes to update your homepage content."
+                : "Your homepage content is up to date."}
             </p>
           </div>
 
@@ -1546,6 +1407,7 @@ function HomeContentPage() {
               ) : (
                 <Save className="h-4 w-4" />
               )}
+
               {saveMutation.isPending ? "Saving..." : "Save Changes"}
             </button>
           </div>
