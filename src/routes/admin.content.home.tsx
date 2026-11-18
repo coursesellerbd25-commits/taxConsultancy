@@ -916,6 +916,7 @@ function HomeContentPage() {
               />
             </Field>
           </div>
+        </EditorSection>
 
         {/* 02. STATISTICS */}
 
