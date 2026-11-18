@@ -9,10 +9,6 @@ import {
   Quote,
   Scale,
   Users,
-  BriefcaseBusiness,
-  FileCheck,
-  MapPinned,
-  CalendarCheck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -26,7 +22,6 @@ import {
   CategoryCard,
   CtaBand,
   SectionHeading,
-  solutions,
 } from "@/components/site/Sections";
 import { faqGroups } from "@/content/faqs";
 import { useSite } from "@/lib/site-data";
@@ -50,7 +45,9 @@ export const Route = createFileRoute("/")({
   component: Home,
 });
 
-const highlights = [
+const valueIcons = [Eye, Users, Lock, Scale];
+
+const defaultHighlights = [
   "Tax and VAT Consultancy",
   "Individual and Corporate Tax Solutions",
   "Business Registration Assistance",
@@ -58,19 +55,24 @@ const highlights = [
   "Regulatory Compliance Guidance",
 ];
 
-const valueIcons = [Eye, Users, Lock, Scale];
-
-const statisticIcons = {
-  experience: BriefcaseBusiness,
-  clients: Users,
-  filings: FileCheck,
-  areas: MapPinned,
+type BusinessSolution = {
+  id: string;
+  title: string;
+  slug: string;
+  short_description: string | null;
+  full_description: string | null;
+  who_needs: string[] | null;
+  help_with: string[] | null;
+  documents: string[] | null;
+  display_order: number | null;
+  enabled: boolean;
 };
 
 function Home() {
-  const catalog = useCatalog();
   const site = useSite();
+  const catalog = useCatalog();
 
+  // Homepage content managed through the admin dashboard.
   const homepageQuery = useQuery({
     queryKey: ["homepage-content"],
     queryFn: async () => {
@@ -86,15 +88,39 @@ function Home() {
     },
   });
 
+  // Business Solutions managed separately from Services.
+  const businessSolutionsQuery = useQuery({
+    queryKey: ["business-solutions"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("business_solutions")
+        .select(
+          "id, title, slug, short_description, full_description, who_needs, help_with, documents, display_order, enabled",
+        )
+        .eq("enabled", true)
+        .order("display_order", { ascending: true });
+
+      if (error) throw error;
+
+      return (data ?? []) as BusinessSolution[];
+    },
+  });
+
   const content = homepageQuery.data ?? defaultHomepageContent;
+  const about = content.about;
+  const registration = content.registration;
+  const howItWorks = content.how_it_works;
+  const testimonials = content.testimonials;
 
   const faqPreview = faqGroups.flatMap((group) =>
     group.items.slice(0, 1),
   );
 
+  const highlights = defaultHighlights;
+
   return (
     <>
-      {/* Hero */}
+      {/* HERO */}
       <section className="relative overflow-hidden bg-navy-deep text-primary-foreground">
         <div className="container-page grid items-center gap-12 py-16 md:py-24 lg:grid-cols-[1.1fr_0.9fr]">
           <div>
@@ -153,39 +179,25 @@ function Home() {
         </div>
       </section>
 
-      {/* Statistics managed from Admin Dashboard */}
-      <section className="border-b bg-background">
-        <div className="container-page grid grid-cols-2 gap-px bg-border py-0 sm:grid-cols-4">
-          {content.statistics.map((stat) => {
-            const Icon =
-              statisticIcons[stat.id] ?? BriefcaseBusiness;
-
-            return (
-              <div
-                key={stat.id}
-                className="flex flex-col items-center bg-background px-4 py-8 text-center"
-              >
-                <Icon
-                  className="mb-3 h-6 w-6 text-gold"
-                  aria-hidden
-                />
-
-                <p className="text-3xl font-semibold text-primary md:text-4xl">
-                  {stat.value === null
-                    ? "—"
-                    : stat.value.toLocaleString()}
+      {/* PROFESSIONAL STATISTICS */}
+      {content.statistics?.length > 0 && (
+        <section className="border-b bg-background">
+          <div className="container-page grid grid-cols-2 gap-6 py-10 md:grid-cols-4">
+            {content.statistics.map((stat) => (
+              <div key={stat.id} className="text-center">
+                <p className="font-serif text-3xl font-semibold text-primary md:text-4xl">
+                  {stat.value ?? "—"}
                 </p>
-
                 <p className="mt-2 text-sm text-muted-foreground">
                   {stat.label}
                 </p>
               </div>
-            );
-          })}
-        </div>
-      </section>
+            ))}
+          </div>
+        </section>
+      )}
 
-      {/* Existing highlights */}
+      {/* HIGHLIGHTS */}
       <section className="border-b bg-surface">
         <ul className="container-page grid gap-4 py-8 sm:grid-cols-2 lg:grid-cols-5">
           {highlights.map((highlight) => (
@@ -203,71 +215,84 @@ function Home() {
         </ul>
       </section>
 
-      {/* Existing VAT calculator */}
+      {/* VAT CALCULATOR */}
       <VatCalculator />
 
-      {/* About - managed from Admin Dashboard */}
+      {/* ABOUT */}
       <section className="container-page grid gap-12 py-20 lg:grid-cols-2">
         <div>
           <SectionHeading
-            eyebrow={content.about.eyebrow}
-            title={content.about.title}
+            eyebrow={about.eyebrow || `About ${site.businessName}`}
+            title={about.title}
           />
 
           <p className="mt-5 text-muted-foreground">
-            {content.about.description || site.biography}
+            {about.description || site.biography}
           </p>
 
-          <p className="mt-4 text-muted-foreground">
-            <strong className="text-primary">
-              {content.about.mission_label}:
-            </strong>{" "}
-            {content.about.mission}{" "}
-            <strong className="text-primary">
-              {content.about.vision_label}:
-            </strong>{" "}
-            {content.about.vision}
-          </p>
+          {(about.mission || about.vision) && (
+            <p className="mt-4 text-muted-foreground">
+              {about.mission && (
+                <>
+                  <strong className="text-primary">
+                    {about.mission_label || "Mission:"}
+                  </strong>{" "}
+                  {about.mission}{" "}
+                </>
+              )}
+
+              {about.vision && (
+                <>
+                  <strong className="text-primary">
+                    {about.vision_label || "Vision:"}
+                  </strong>{" "}
+                  {about.vision}
+                </>
+              )}
+            </p>
+          )}
 
           <div className="mt-5 flex flex-wrap gap-2">
-            {content.about.credentials.length > 0 ? (
-              content.about.credentials.map((credential) => (
-                <span
-                  key={credential}
-                  className="rounded-sm border px-3 py-1 text-sm"
-                >
-                  {credential}
-                </span>
-              ))
-            ) : (
-              <Placeholder>
-                [Verified qualifications and experience]
-              </Placeholder>
-            )}
+            {about.credentials?.length
+              ? about.credentials.map((credential) => (
+                  <span
+                    key={credential}
+                    className="rounded-sm border px-3 py-1 text-sm"
+                  >
+                    {credential}
+                  </span>
+                ))
+              : site.credentials.length
+                ? site.credentials.map((credential) => (
+                    <span
+                      key={credential}
+                      className="rounded-sm border px-3 py-1 text-sm"
+                    >
+                      {credential}
+                    </span>
+                  ))
+                : (
+                    <Placeholder>
+                      [Placeholder: verified qualifications and experience]
+                    </Placeholder>
+                  )}
           </div>
 
-          <Button
-            asChild
-            variant="outline"
-            className="mt-8"
-          >
+          <Button asChild variant="outline" className="mt-8">
             <Link to="/about">
-              {content.about.button_text}
+              {about.button_text || "Learn More About Us"}
               <ArrowRight />
             </Link>
           </Button>
         </div>
 
         <div className="grid gap-px self-start border bg-border sm:grid-cols-2">
-          {content.about.values.map((value, index) => {
-            const Icon = valueIcons[index % valueIcons.length];
+          {(about.values ?? []).map((value, index) => {
+            const ValueIcon = valueIcons[index % valueIcons.length];
 
             return (
-              <div
-                key={value.id}
-                className="bg-card p-6"
-              >
-                <Icon
+              <div key={`${value.title}-${index}`} className="bg-card p-6">
+                <ValueIcon
                   className="h-6 w-6 text-gold"
                   aria-hidden
                 />
@@ -283,13 +308,13 @@ function Home() {
         </div>
       </section>
 
-      {/* Existing Services */}
+      {/* SERVICES */}
       <section className="border-y bg-surface py-20">
         <div className="container-page">
           <div className="flex flex-wrap items-end justify-between gap-4">
             <SectionHeading
               eyebrow="Our services"
-              title="Professional services across eight practice areas"
+              title="Professional services across our practice areas"
             />
 
             <Link
@@ -301,79 +326,104 @@ function Home() {
           </div>
 
           <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-            {catalog.map((category) => (
-              <CategoryCard
-                key={category.slug}
-                c={category}
-              />
+            {catalog.map((service) => (
+              <CategoryCard key={service.slug} c={service} />
             ))}
           </div>
+
+          {catalog.length === 0 && (
+            <p className="mt-8 text-center text-sm text-muted-foreground">
+              Services will appear here once published.
+            </p>
+          )}
         </div>
       </section>
 
-      {/* Existing Business Solutions */}
+      {/* BUSINESS SOLUTIONS */}
       <section className="container-page py-20">
         <SectionHeading
           eyebrow="Business solutions"
           title="Solutions for every stage of business"
         />
 
-        <div className="mt-10 grid gap-5 md:grid-cols-2 lg:grid-cols-4">
-          {solutions.map((solution) => (
-            <article
-              key={solution.slug}
-              className="flex flex-col border-t-4 border-gold bg-card p-6 shadow-sm"
-            >
-              <h3 className="text-lg font-semibold">
-                {solution.title}
-              </h3>
-
-              <ul className="mt-4 flex-1 space-y-1.5 text-sm text-muted-foreground">
-                {solution.items.slice(0, 4).map((item) => (
-                  <li key={item}>· {item}</li>
-                ))}
-              </ul>
-
-              <Link
-                to="/business-solutions"
-                hash={solution.slug}
-                className="mt-5 text-sm font-medium text-primary hover:underline"
+        {businessSolutionsQuery.isLoading ? (
+          <p className="mt-10 text-sm text-muted-foreground">
+            Loading business solutions...
+          </p>
+        ) : businessSolutionsQuery.isError ? (
+          <p className="mt-10 text-sm text-muted-foreground">
+            Business solutions are temporarily unavailable.
+          </p>
+        ) : businessSolutionsQuery.data?.length ? (
+          <div className="mt-10 grid gap-5 md:grid-cols-2 lg:grid-cols-4">
+            {businessSolutionsQuery.data.map((solution) => (
+              <article
+                key={solution.id}
+                className="flex flex-col border-t-4 border-gold bg-card p-6 shadow-sm"
               >
-                Explore solution →
-              </Link>
-            </article>
-          ))}
-        </div>
+                <h3 className="text-lg font-semibold">
+                  {solution.title}
+                </h3>
+
+                <p className="mt-3 text-sm text-muted-foreground">
+                  {solution.short_description}
+                </p>
+
+                {solution.help_with?.length ? (
+                  <ul className="mt-4 flex-1 space-y-1.5 text-sm text-muted-foreground">
+                    {solution.help_with.slice(0, 4).map((item) => (
+                      <li key={item}>· {item}</li>
+                    ))}
+                  </ul>
+                ) : (
+                  <div className="flex-1" />
+                )}
+
+                <Link
+                  to="/business-solutions"
+                  hash={solution.slug}
+                  className="mt-5 text-sm font-medium text-primary hover:underline"
+                >
+                  Explore solution →
+                </Link>
+              </article>
+            ))}
+          </div>
+        ) : (
+          <p className="mt-10 text-sm text-muted-foreground">
+            Business solutions will appear here once published.
+          </p>
+        )}
       </section>
 
-      {/* Company Registration - managed from Admin Dashboard */}
+      {/* COMPANY REGISTRATION */}
       <section className="border-y bg-surface py-20">
         <div className="container-page">
           <div className="flex flex-wrap items-end justify-between gap-4">
             <SectionHeading
-              eyebrow={content.registration.eyebrow}
-              title={content.registration.title}
+              eyebrow={registration.eyebrow}
+              title={registration.title}
             />
 
             <Link
               to="/company-registration"
               className="text-sm font-medium text-primary hover:underline"
             >
-              {content.registration.link_text} →
+              {registration.link_text || "See the full process →"}
             </Link>
           </div>
 
           <div className="mt-10 grid gap-5 md:grid-cols-2 lg:grid-cols-4">
-            {content.registration.steps.map((step, index) => (
+            {registration.steps?.map((step, index) => (
               <article
                 key={`${step.title}-${index}`}
-                className="relative border-t-4 border-gold bg-card p-6 shadow-sm"
+                className="relative border bg-card p-6"
               >
-                <span className="font-serif text-3xl text-gold">
-                  {String(index + 1).padStart(2, "0")}
+                <span className="flex h-9 w-9 items-center justify-center rounded-full bg-navy-deep text-sm font-semibold text-primary-foreground">
+                  {index + 1}
                 </span>
 
-                <h3 className="mt-4 font-semibold text-primary">
+                <h3 className="mt-5 font-semibold text-primary">
                   {step.title}
                 </h3>
 
@@ -384,62 +434,60 @@ function Home() {
             ))}
           </div>
 
-          {content.registration.disclaimer && (
+          {registration.disclaimer && (
             <p className="mt-6 text-sm text-muted-foreground">
-              {content.registration.disclaimer}
+              {registration.disclaimer}
             </p>
           )}
         </div>
       </section>
 
-      {/* How It Works - managed from Admin Dashboard */}
+      {/* HOW IT WORKS */}
       <section className="container-page py-20">
         <SectionHeading
-          eyebrow={content.how_it_works.eyebrow}
-          title={content.how_it_works.title}
+          eyebrow={howItWorks.eyebrow}
+          title={howItWorks.title}
         />
 
-        <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-          {content.how_it_works.steps.map((step, index) => (
+        <div className="mt-10 grid gap-5 md:grid-cols-2 lg:grid-cols-4">
+          {howItWorks.steps?.map((step, index) => (
             <article
               key={`${step.title}-${index}`}
-              className="border bg-card p-6"
+              className="border-l-4 border-gold bg-card p-6 shadow-sm"
             >
-              <div className="flex h-11 w-11 items-center justify-center rounded-full bg-navy-deep text-lg font-semibold text-primary-foreground">
-                {index + 1}
-              </div>
+              <p className="text-sm font-semibold uppercase tracking-wider text-gold">
+                Step {index + 1}
+              </p>
 
-              <h3 className="mt-5 font-semibold text-primary">
+              <h3 className="mt-3 font-semibold text-primary">
                 {step.title}
               </h3>
 
-              {step.text && (
-                <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-                  {step.text}
-                </p>
-              )}
+              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+                {step.text}
+              </p>
             </article>
           ))}
         </div>
 
-        {content.how_it_works.disclaimer && (
+        {howItWorks.disclaimer && (
           <p className="mt-6 text-sm text-muted-foreground">
-            {content.how_it_works.disclaimer}
+            {howItWorks.disclaimer}
           </p>
         )}
       </section>
 
-      {/* Testimonials - managed from Admin Dashboard */}
+      {/* TESTIMONIALS */}
       <section className="border-y bg-surface py-20">
         <div className="container-page">
           <SectionHeading
-            eyebrow={content.testimonials.eyebrow}
-            title={content.testimonials.title}
+            eyebrow={testimonials.eyebrow}
+            title={testimonials.title}
           />
 
-          {content.testimonials.items.length > 0 ? (
-            <div className="mt-10 grid gap-5 md:grid-cols-3">
-              {content.testimonials.items.map((testimonial, index) => (
+          {testimonials.items?.length ? (
+            <div className="mt-10 grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+              {testimonials.items.map((testimonial, index) => (
                 <figure
                   key={`${testimonial.client_name}-${index}`}
                   className="border bg-card p-6"
@@ -455,20 +503,22 @@ function Home() {
 
                   <figcaption className="mt-4 text-sm font-medium text-primary">
                     {testimonial.client_name}
-                    {testimonial.service && ` · ${testimonial.service}`}
+                    {testimonial.service
+                      ? ` · ${testimonial.service}`
+                      : ""}
                   </figcaption>
                 </figure>
               ))}
             </div>
           ) : (
             <p className="mt-8 text-sm text-muted-foreground">
-              Client feedback will appear here when published.
+              Client feedback will appear here once published.
             </p>
           )}
         </div>
       </section>
 
-      {/* Existing Resources and FAQs */}
+      {/* RESOURCES AND FAQ */}
       <section className="container-page grid gap-10 py-20 lg:grid-cols-3">
         <div>
           <SectionHeading
@@ -504,16 +554,9 @@ function Home() {
             title="Common questions"
           />
 
-          <Accordion
-            type="single"
-            collapsible
-            className="mt-4"
-          >
+          <Accordion type="single" collapsible className="mt-4">
             {faqPreview.map((faq) => (
-              <AccordionItem
-                key={faq.q}
-                value={faq.q}
-              >
+              <AccordionItem key={faq.q} value={faq.q}>
                 <AccordionTrigger className="text-left text-base">
                   {faq.q}
                 </AccordionTrigger>
@@ -534,7 +577,7 @@ function Home() {
         </div>
       </section>
 
-      {/* Existing CTA */}
+      {/* FINAL CALL TO ACTION */}
       <CtaBand />
     </>
   );
