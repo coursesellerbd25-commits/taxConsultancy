@@ -1,7 +1,18 @@
 
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Save, LoaderCircle, Info } from "lucide-react";
+import {
+  Save,
+  LoaderCircle,
+  Info,
+  Image as ImageIcon,
+  UserRound,
+  GraduationCap,
+  BriefcaseBusiness,
+  Award,
+  BookOpen,
+  Eye,
+} from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/admin/content/about")({
@@ -10,19 +21,126 @@ export const Route = createFileRoute("/admin/content/about")({
 
 type AboutSettings = {
   business_name: string;
-  tagline: string;
   consultant_name: string;
+  about_eyebrow: string;
+  about_intro: string;
+  consultant_photo_url: string;
   biography: string;
-  logo_url: string;
+  credentials: string[];
+  professional_experience: string;
+  specializations: string[];
+  professional_approach: string;
+  affiliations: string[];
 };
 
 const initialSettings: AboutSettings = {
   business_name: "",
-  tagline: "",
   consultant_name: "",
+  about_eyebrow: "About",
+  about_intro: "",
+  consultant_photo_url: "",
   biography: "",
-  logo_url: "",
+  credentials: [],
+  professional_experience: "",
+  specializations: [],
+  professional_approach: "",
+  affiliations: [],
 };
+
+function parseList(value: string): string[] {
+  return value
+    .split("\n")
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function Field({
+  label,
+  value,
+  onChange,
+  placeholder,
+  type = "text",
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  placeholder?: string;
+  type?: string;
+}) {
+  return (
+    <div>
+      <label className="mb-2 block text-sm font-medium text-slate-700">
+        {label}
+      </label>
+      <input
+        type={type}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        className="w-full rounded-lg border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-[#243653] focus:ring-2 focus:ring-[#243653]/10"
+      />
+    </div>
+  );
+}
+
+function TextAreaField({
+  label,
+  value,
+  onChange,
+  placeholder,
+  rows = 5,
+  hint,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  placeholder?: string;
+  rows?: number;
+  hint?: string;
+}) {
+  return (
+    <div>
+      <label className="mb-2 block text-sm font-medium text-slate-700">
+        {label}
+      </label>
+      <textarea
+        rows={rows}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        className="w-full resize-y rounded-lg border border-slate-300 px-4 py-3 text-sm leading-7 outline-none transition focus:border-[#243653] focus:ring-2 focus:ring-[#243653]/10"
+      />
+      {hint && <p className="mt-2 text-xs text-slate-400">{hint}</p>}
+    </div>
+  );
+}
+
+function SectionCard({
+  icon: Icon,
+  title,
+  description,
+  children,
+}: {
+  icon: React.ElementType;
+  title: string;
+  description: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
+      <div className="mb-6 flex items-start gap-3">
+        <div className="rounded-lg bg-[#243653]/5 p-2.5 text-[#243653]">
+          <Icon className="h-5 w-5" />
+        </div>
+        <div>
+          <h2 className="text-lg font-semibold text-[#243653]">{title}</h2>
+          <p className="mt-1 text-sm text-slate-500">{description}</p>
+        </div>
+      </div>
+      <div className="space-y-5">{children}</div>
+    </section>
+  );
+}
 
 function AboutContentPage() {
   const [settings, setSettings] =
@@ -34,7 +152,7 @@ function AboutContentPage() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    loadSettings();
+    void loadSettings();
   }, []);
 
   async function loadSettings() {
@@ -43,9 +161,7 @@ function AboutContentPage() {
 
     const { data, error } = await supabase
       .from("site_settings")
-      .select(
-        "business_name, tagline, consultant_name, biography, logo_url"
-      )
+      .select("*")
       .eq("id", 1)
       .maybeSingle();
 
@@ -56,26 +172,35 @@ function AboutContentPage() {
     }
 
     if (data) {
+      const row = data as unknown as Partial<AboutSettings>;
+
       setSettings({
-        business_name: data.business_name ?? "",
-        tagline: data.tagline ?? "",
-        consultant_name: data.consultant_name ?? "",
-        biography: data.biography ?? "",
-        logo_url: data.logo_url ?? "",
+        business_name: row.business_name ?? "",
+        consultant_name: row.consultant_name ?? "",
+        about_eyebrow: row.about_eyebrow ?? "About",
+        about_intro: row.about_intro ?? "",
+        consultant_photo_url: row.consultant_photo_url ?? "",
+        biography: row.biography ?? "",
+        credentials: row.credentials ?? [],
+        professional_experience: row.professional_experience ?? "",
+        specializations: row.specializations ?? [],
+        professional_approach: row.professional_approach ?? "",
+        affiliations: row.affiliations ?? [],
       });
     }
 
     setLoading(false);
   }
 
-  function updateField(
-    field: keyof AboutSettings,
-    value: string
+  function updateField<K extends keyof AboutSettings>(
+    field: K,
+    value: AboutSettings[K],
   ) {
     setSettings((previous) => ({
       ...previous,
       [field]: value,
     }));
+
     setMessage("");
     setError("");
   }
@@ -87,14 +212,11 @@ function AboutContentPage() {
 
     const { error } = await supabase
       .from("site_settings")
-      .upsert(
-        {
-          id: 1,
-          ...settings,
-          updated_at: new Date().toISOString(),
-        },
-        { onConflict: "id" }
-      );
+      .update({
+        ...settings,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", 1);
 
     if (error) {
       setError(error.message);
@@ -128,8 +250,8 @@ function AboutContentPage() {
             About Page Editor
           </h1>
           <p className="mt-2 text-sm text-slate-500">
-            Manage the business introduction and consultant information
-            displayed on your public website.
+            Manage the consultant profile, biography, qualifications,
+            experience and professional information shown on your website.
           </p>
         </div>
 
@@ -148,7 +270,6 @@ function AboutContentPage() {
         </button>
       </div>
 
-      {/* Feedback */}
       {message && (
         <div className="rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
           {message}
@@ -169,142 +290,195 @@ function AboutContentPage() {
         </div>
       )}
 
-      {/* Business information */}
-      <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
-        <div className="mb-6">
-          <h2 className="text-lg font-semibold text-[#243653]">
-            Business Information
-          </h2>
-          <p className="mt-1 text-sm text-slate-500">
-            Basic information displayed in the About section.
-          </p>
-        </div>
+      {/* Basic information */}
+      <SectionCard
+        icon={UserRound}
+        title="About Page Introduction"
+        description="Control the heading and introductory text visitors see at the top of the About page."
+      >
+        <Field
+          label="Business Name"
+          value={settings.business_name}
+          onChange={(value) => updateField("business_name", value)}
+          placeholder="Corporate Tax Bangladesh"
+        />
 
-        <div className="space-y-5">
-          <div>
-            <label className="mb-2 block text-sm font-medium text-slate-700">
-              Business Name
-            </label>
-            <input
-              type="text"
-              value={settings.business_name}
-              onChange={(e) =>
-                updateField("business_name", e.target.value)
-              }
-              placeholder="Corporate Tax Bangladesh"
-              className="w-full rounded-lg border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-[#243653] focus:ring-2 focus:ring-[#243653]/10"
+        <Field
+          label="Section Label / Eyebrow"
+          value={settings.about_eyebrow}
+          onChange={(value) => updateField("about_eyebrow", value)}
+          placeholder="About"
+        />
+
+        <Field
+          label="Consultant / Founder Name"
+          value={settings.consultant_name}
+          onChange={(value) => updateField("consultant_name", value)}
+          placeholder="Enter consultant's name"
+        />
+
+        <TextAreaField
+          label="Page Introduction"
+          value={settings.about_intro}
+          onChange={(value) => updateField("about_intro", value)}
+          placeholder="A tax practitioner and VAT consultant serving individuals and businesses in Bangladesh."
+          rows={3}
+        />
+      </SectionCard>
+
+      {/* Consultant photo */}
+      <SectionCard
+        icon={ImageIcon}
+        title="Professional Photograph"
+        description="Add the consultant's professional photograph displayed in the left column of the About page."
+      >
+        <Field
+          label="Photograph URL"
+          type="url"
+          value={settings.consultant_photo_url}
+          onChange={(value) =>
+            updateField("consultant_photo_url", value)
+          }
+          placeholder="https://example.com/consultant-photo.jpg"
+        />
+
+        {settings.consultant_photo_url && (
+          <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+            <p className="mb-3 text-xs font-medium uppercase tracking-wide text-slate-500">
+              Photograph Preview
+            </p>
+            <img
+              src={settings.consultant_photo_url}
+              alt="Consultant preview"
+              className="aspect-[4/5] w-48 rounded-md border bg-white object-cover"
+              onError={(e) => {
+                e.currentTarget.style.display = "none";
+              }}
             />
           </div>
+        )}
+      </SectionCard>
 
-          <div>
-            <label className="mb-2 block text-sm font-medium text-slate-700">
-              Tagline
-            </label>
-            <input
-              type="text"
-              value={settings.tagline}
-              onChange={(e) =>
-                updateField("tagline", e.target.value)
-              }
-              placeholder="Your trusted tax consultancy partner"
-              className="w-full rounded-lg border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-[#243653] focus:ring-2 focus:ring-[#243653]/10"
-            />
-          </div>
+      {/* Biography */}
+      <SectionCard
+        icon={BookOpen}
+        title="Professional Biography"
+        description="Write the main biography displayed in the Professional Biography section."
+      >
+        <TextAreaField
+          label="Biography"
+          value={settings.biography}
+          onChange={(value) => updateField("biography", value)}
+          placeholder="Write the consultant's professional background, expertise, working experience and commitment to clients..."
+          rows={9}
+        />
+      </SectionCard>
 
-          <div>
-            <label className="mb-2 block text-sm font-medium text-slate-700">
-              Consultant / Founder Name
-            </label>
-            <input
-              type="text"
-              value={settings.consultant_name}
-              onChange={(e) =>
-                updateField("consultant_name", e.target.value)
-              }
-              placeholder="Enter consultant's name"
-              className="w-full rounded-lg border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-[#243653] focus:ring-2 focus:ring-[#243653]/10"
-            />
-          </div>
+      {/* Qualifications */}
+      <SectionCard
+        icon={GraduationCap}
+        title="Qualifications & Certifications"
+        description="Add verified academic qualifications, professional certifications and memberships."
+      >
+        <TextAreaField
+          label="Qualifications (one item per line)"
+          value={settings.credentials.join("\n")}
+          onChange={(value) =>
+            updateField("credentials", parseList(value))
+          }
+          placeholder={"Bachelor's Degree in ...\nProfessional Certification in ..."}
+          rows={6}
+          hint="Enter each qualification on a separate line. Empty lines are ignored."
+        />
+      </SectionCard>
 
-          <div>
-            <label className="mb-2 block text-sm font-medium text-slate-700">
-              Business Logo URL
-            </label>
-            <input
-              type="url"
-              value={settings.logo_url}
-              onChange={(e) =>
-                updateField("logo_url", e.target.value)
-              }
-              placeholder="https://example.com/logo.png"
-              className="w-full rounded-lg border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-[#243653] focus:ring-2 focus:ring-[#243653]/10"
-            />
+      {/* Experience */}
+      <SectionCard
+        icon={BriefcaseBusiness}
+        title="Professional Experience"
+        description="Describe the consultant's relevant work history and professional experience."
+      >
+        <TextAreaField
+          label="Experience Details"
+          value={settings.professional_experience}
+          onChange={(value) =>
+            updateField("professional_experience", value)
+          }
+          placeholder="Describe relevant roles, years of experience, client work and areas of responsibility..."
+          rows={7}
+        />
+      </SectionCard>
 
-            {settings.logo_url && (
-              <div className="mt-3 rounded-lg border border-slate-200 bg-slate-50 p-4">
-                <p className="mb-2 text-xs font-medium text-slate-500">
-                  Logo Preview
-                </p>
-                <img
-                  src={settings.logo_url}
-                  alt="Business logo preview"
-                  className="h-16 max-w-full object-contain"
-                  onError={(e) => {
-                    e.currentTarget.style.display = "none";
-                  }}
-                />
-              </div>
-            )}
-          </div>
-        </div>
-      </section>
+      {/* Specializations */}
+      <SectionCard
+        icon={Award}
+        title="Areas of Specialization"
+        description="Manage the list of services and practice areas displayed on the About page."
+      >
+        <TextAreaField
+          label="Specializations (one item per line)"
+          value={settings.specializations.join("\n")}
+          onChange={(value) =>
+            updateField("specializations", parseList(value))
+          }
+          placeholder={"Income Tax Consultancy\nVAT Compliance\nCompany Registration\nCorporate Tax Advisory"}
+          rows={7}
+          hint="Each line becomes a separate specialization."
+        />
+      </SectionCard>
 
-      {/* About biography */}
-      <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
-        <div className="mb-6">
-          <h2 className="text-lg font-semibold text-[#243653]">
-            About the Business
-          </h2>
-          <p className="mt-1 text-sm text-slate-500">
-            Write the introduction that visitors will see on your About page.
-          </p>
-        </div>
+      {/* Professional approach */}
+      <SectionCard
+        icon={Eye}
+        title="Professional Approach"
+        description="Explain how the consultant works with clients and approaches professional responsibilities."
+      >
+        <TextAreaField
+          label="Professional Approach"
+          value={settings.professional_approach}
+          onChange={(value) =>
+            updateField("professional_approach", value)
+          }
+          placeholder="Explain your approach to consultations, communication, documentation, confidentiality and client support..."
+          rows={7}
+        />
+      </SectionCard>
 
-        <div>
-          <label className="mb-2 block text-sm font-medium text-slate-700">
-            Business Biography / Introduction
-          </label>
-          <textarea
-            rows={10}
-            value={settings.biography}
-            onChange={(e) =>
-              updateField("biography", e.target.value)
-            }
-            placeholder="Write about your consultancy, experience, expertise, mission, and the services you provide..."
-            className="w-full resize-y rounded-lg border border-slate-300 px-4 py-3 text-sm leading-7 outline-none transition focus:border-[#243653] focus:ring-2 focus:ring-[#243653]/10"
-          />
-          <p className="mt-2 text-xs text-slate-400">
-            This content is stored in your website settings.
-          </p>
-        </div>
-      </section>
+      {/* Affiliations */}
+      <SectionCard
+        icon={GraduationCap}
+        title="Professional Affiliations"
+        description="List verified professional memberships, affiliations and relevant organizations."
+      >
+        <TextAreaField
+          label="Affiliations (one item per line)"
+          value={settings.affiliations.join("\n")}
+          onChange={(value) =>
+            updateField("affiliations", parseList(value))
+          }
+          placeholder={"Professional organization or association\nVerified membership"}
+          rows={5}
+          hint="Only add affiliations that can be verified."
+        />
+      </SectionCard>
 
-      {/* Information notice */}
+      {/* Information */}
       <div className="flex items-start gap-3 rounded-lg border border-blue-100 bg-blue-50 p-4">
         <Info className="mt-0.5 h-5 w-5 shrink-0 text-blue-600" />
         <div>
           <p className="text-sm font-semibold text-blue-900">
-            Content management information
+            About page content management
           </p>
           <p className="mt-1 text-sm leading-6 text-blue-800">
-            Changes are saved to Supabase. Your public About page must
-            read these same fields from site_settings to display the
-            updated information.
+            All these fields are saved in the site_settings table.
+            Your public About page must read these same fields to show
+            the latest content. Saving here does not automatically
+            change the public page until that page is connected to them.
           </p>
         </div>
       </div>
 
-      {/* Bottom save button */}
+      {/* Bottom save */}
       <div className="flex justify-end">
         <button
           type="button"
@@ -312,7 +486,11 @@ function AboutContentPage() {
           disabled={saving}
           className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#243653] px-6 py-3 text-sm font-semibold text-white transition hover:bg-[#30476b] disabled:opacity-60"
         >
-          <Save className="h-4 w-4" />
+          {saving ? (
+            <LoaderCircle className="h-4 w-4 animate-spin" />
+          ) : (
+            <Save className="h-4 w-4" />
+          )}
           {saving ? "Saving..." : "Save About Page"}
         </button>
       </div>
