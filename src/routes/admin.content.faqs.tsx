@@ -5,14 +5,12 @@ import {
   useQuery,
   useQueryClient,
 } from "@tanstack/react-query";
-import { useEffect, useMemo, useState } from "react";
-import type { FormEvent, ReactNode } from "react";
+import { useMemo, useState } from "react";
+import type { FormEvent } from "react";
 import {
   Plus,
   Pencil,
   Trash2,
-  X,
-  Save,
   Search,
   HelpCircle,
   Eye,
@@ -22,9 +20,13 @@ import {
   AlertCircle,
   MessageSquareText,
   Layers,
-  ListOrdered,
+  Save,
+  X,
   ChevronDown,
   ChevronUp,
+  FolderOpen,
+  ArrowUpDown,
+  PencilLine,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -54,7 +56,7 @@ type FAQForm = {
 const emptyForm: FAQForm = {
   question: "",
   answer: "",
-  category: "General",
+  category: "Individual Tax FAQs",
   display_order: 0,
   enabled: true,
 };
@@ -63,7 +65,7 @@ const inputClass =
   "w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-[#243653] focus:ring-2 focus:ring-[#243653]/10";
 
 const textareaClass =
-  "w-full min-h-32 resize-y rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-[#243653] focus:ring-2 focus:ring-[#243653]/10";
+  "w-full min-h-36 resize-y rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm leading-6 text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-[#243653] focus:ring-2 focus:ring-[#243653]/10";
 
 function Field({
   label,
@@ -72,7 +74,7 @@ function Field({
 }: {
   label: string;
   hint?: string;
-  children: ReactNode;
+  children: React.ReactNode;
 }) {
   return (
     <div className="space-y-2">
@@ -80,33 +82,27 @@ function Field({
         {label}
       </label>
       {children}
-      {hint && <p className="text-xs leading-5 text-slate-500">{hint}</p>}
+      {hint && (
+        <p className="text-xs leading-5 text-slate-500">{hint}</p>
+      )}
     </div>
   );
 }
 
-function FAQSummaryCard({
+function SummaryCard({
   label,
   value,
   icon,
-  color = "navy",
 }: {
   label: string;
   value: number;
-  icon: ReactNode;
-  color?: "navy" | "green" | "amber";
+  icon: React.ReactNode;
 }) {
-  const iconStyles = {
-    navy: "bg-[#243653]/10 text-[#243653]",
-    green: "bg-emerald-50 text-emerald-600",
-    amber: "bg-amber-50 text-amber-600",
-  };
-
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
       <div className="flex items-center justify-between gap-3">
         <p className="text-sm font-medium text-slate-500">{label}</p>
-        <div className={`rounded-xl p-2.5 ${iconStyles[color]}`}>
+        <div className="rounded-xl bg-[#243653]/10 p-2.5 text-[#243653]">
           {icon}
         </div>
       </div>
@@ -134,10 +130,10 @@ function FAQsPage() {
       const { data, error } = await supabase
         .from("faqs")
         .select(
-          "id, question, answer, category, display_order, enabled, created_at, updated_at"
+          "id, question, answer, category, display_order, enabled, created_at, updated_at",
         )
         .order("display_order", { ascending: true })
-        .order("created_at", { ascending: false });
+        .order("created_at", { ascending: true });
 
       if (error) throw error;
       return (data ?? []) as FAQ[];
@@ -151,11 +147,11 @@ function FAQsPage() {
       Array.from(
         new Set(
           faqs
-            .map((faq) => faq.category?.trim())
-            .filter((category): category is string => Boolean(category))
-        )
+            .map((faq) => faq.category.trim())
+            .filter(Boolean),
+        ),
       ).sort((a, b) => a.localeCompare(b)),
-    [faqs]
+    [faqs],
   );
 
   const filteredFAQs = useMemo(() => {
@@ -169,42 +165,42 @@ function FAQsPage() {
         faq.category.toLowerCase().includes(searchValue);
 
       const matchesCategory =
-        categoryFilter === "All" || faq.category === categoryFilter;
+        categoryFilter === "All" ||
+        faq.category === categoryFilter;
 
       return matchesSearch && matchesCategory;
     });
   }, [faqs, search, categoryFilter]);
 
+  const groupedFAQs = useMemo(() => {
+    return categories
+      .map((category) => ({
+        category,
+        items: filteredFAQs.filter(
+          (faq) => faq.category === category,
+        ),
+      }))
+      .filter((group) => group.items.length > 0);
+  }, [categories, filteredFAQs]);
+
   const publishedCount = faqs.filter((faq) => faq.enabled).length;
   const hiddenCount = faqs.length - publishedCount;
 
-  useEffect(() => {
-    if (editingFAQ) {
-      setForm({
-        question: editingFAQ.question,
-        answer: editingFAQ.answer,
-        category: editingFAQ.category,
-        display_order: editingFAQ.display_order,
-        enabled: editingFAQ.enabled,
-      });
-    }
-  }, [editingFAQ]);
+  async function refreshFAQs() {
+    await queryClient.invalidateQueries({
+      queryKey: ["admin-faqs"],
+    });
 
-  function updateField<K extends keyof FAQForm>(
-    field: K,
-    value: FAQForm[K]
-  ) {
-    setForm((previous) => ({
-      ...previous,
-      [field]: value,
-    }));
-    setFormError("");
+    await queryClient.invalidateQueries({
+      queryKey: ["public-faqs"],
+    });
   }
 
-  function openCreateForm() {
+  function openCreateForm(category?: string) {
     setEditingFAQ(null);
     setForm({
       ...emptyForm,
+      category: category || categories[0] || "Individual Tax FAQs",
       display_order: faqs.length + 1,
     });
     setFormError("");
@@ -233,15 +229,15 @@ function FAQsPage() {
     setFormError("");
   }
 
-  async function refreshFAQs() {
-    await queryClient.invalidateQueries({
-      queryKey: ["admin-faqs"],
-    });
-
-    // Also refresh the public FAQ query if it uses this key.
-    await queryClient.invalidateQueries({
-      queryKey: ["public-faqs"],
-    });
+  function updateField<K extends keyof FAQForm>(
+    field: K,
+    value: FAQForm[K],
+  ) {
+    setForm((previous) => ({
+      ...previous,
+      [field]: value,
+    }));
+    setFormError("");
   }
 
   const saveMutation = useMutation({
@@ -249,7 +245,7 @@ function FAQsPage() {
       const payload = {
         question: values.question.trim(),
         answer: values.answer.trim(),
-        category: values.category.trim() || "General",
+        category: values.category.trim(),
         display_order: Number(values.display_order),
         enabled: values.enabled,
         updated_at: new Date().toISOString(),
@@ -263,20 +259,20 @@ function FAQsPage() {
 
         if (error) throw error;
       } else {
-        const { error } = await supabase.from("faqs").insert(payload);
+        const { error } = await supabase
+          .from("faqs")
+          .insert(payload);
 
         if (error) throw error;
       }
     },
     onSuccess: async () => {
       await refreshFAQs();
-
       setNotice(
         editingFAQ
           ? "FAQ updated successfully."
-          : "New FAQ created successfully."
+          : "New FAQ created successfully.",
       );
-
       closeForm();
     },
     onError: (error: Error) => {
@@ -286,7 +282,11 @@ function FAQsPage() {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("faqs").delete().eq("id", id);
+      const { error } = await supabase
+        .from("faqs")
+        .delete()
+        .eq("id", id);
+
       if (error) throw error;
     },
     onSuccess: async () => {
@@ -327,13 +327,19 @@ function FAQsPage() {
       const sorted = [...faqs].sort(
         (a, b) =>
           a.display_order - b.display_order ||
-          a.created_at.localeCompare(b.created_at)
+          a.created_at.localeCompare(b.created_at),
       );
 
-      const index = sorted.findIndex((item) => item.id === faq.id);
-      const targetIndex = direction === "up" ? index - 1 : index + 1;
+      const index = sorted.findIndex(
+        (item) => item.id === faq.id,
+      );
 
-      if (targetIndex < 0 || targetIndex >= sorted.length) return;
+      const targetIndex =
+        direction === "up" ? index - 1 : index + 1;
+
+      if (targetIndex < 0 || targetIndex >= sorted.length) {
+        return;
+      }
 
       const target = sorted[targetIndex];
 
@@ -360,10 +366,39 @@ function FAQsPage() {
     onSuccess: refreshFAQs,
   });
 
+  const renameCategoryMutation = useMutation({
+    mutationFn: async ({
+      oldName,
+      newName,
+    }: {
+      oldName: string;
+      newName: string;
+    }) => {
+      const { error } = await supabase
+        .from("faqs")
+        .update({
+          category: newName,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("category", oldName);
+
+      if (error) throw error;
+    },
+    onSuccess: async () => {
+      await refreshFAQs();
+      setNotice("Category renamed successfully.");
+    },
+  });
+
   function handleSave(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setFormError("");
     setNotice("");
+
+    if (!form.category.trim()) {
+      setFormError("Please enter a category name.");
+      return;
+    }
 
     if (!form.question.trim()) {
       setFormError("Please enter the FAQ question.");
@@ -375,7 +410,10 @@ function FAQsPage() {
       return;
     }
 
-    if (!Number.isFinite(Number(form.display_order))) {
+    if (
+      !Number.isFinite(Number(form.display_order)) ||
+      Number(form.display_order) < 0
+    ) {
       setFormError("Please enter a valid display order.");
       return;
     }
@@ -385,11 +423,41 @@ function FAQsPage() {
 
   function handleDelete(faq: FAQ) {
     const confirmed = window.confirm(
-      `Are you sure you want to delete this FAQ?\n\n"${faq.question}"\n\nThis action cannot be undone.`
+      `Delete this FAQ?\n\n"${faq.question}"\n\nThis action cannot be undone.`,
     );
 
     if (confirmed) {
       deleteMutation.mutate(faq.id);
+    }
+  }
+
+  function handleRenameCategory(category: string) {
+    const newName = window
+      .prompt("Enter the new category name:", category)
+      ?.trim();
+
+    if (!newName || newName === category) return;
+
+    const existing = categories.find(
+      (item) => item.toLowerCase() === newName.toLowerCase(),
+    );
+
+    if (existing && existing !== category) {
+      window.alert(
+        "A category with that name already exists. Choose another name.",
+      );
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `Rename "${category}" to "${newName}"?\n\nAll FAQs in this category will be updated.`,
+    );
+
+    if (confirmed) {
+      renameCategoryMutation.mutate({
+        oldName: category,
+        newName,
+      });
     }
   }
 
@@ -424,6 +492,12 @@ function FAQsPage() {
     );
   }
 
+  const mutationError =
+    deleteMutation.error ||
+    visibilityMutation.error ||
+    orderMutation.error ||
+    renameCategoryMutation.error;
+
   return (
     <div className="mx-auto w-full max-w-7xl space-y-7 pb-12">
       {/* Page heading */}
@@ -431,7 +505,7 @@ function FAQsPage() {
         <div>
           <div className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-[#B7792B]">
             <HelpCircle className="h-4 w-4" />
-            Website Content
+            Website Content / FAQs
           </div>
 
           <h1 className="text-2xl font-bold tracking-tight text-[#243653] sm:text-3xl">
@@ -439,13 +513,13 @@ function FAQsPage() {
           </h1>
 
           <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
-            Create and manage answers to common client questions. Organize
-            FAQs into categories and control which answers appear publicly.
+            Manage the categories, questions, and answers displayed
+            on your public FAQs page.
           </p>
         </div>
 
         <button
-          onClick={openCreateForm}
+          onClick={() => openCreateForm()}
           className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#243653] px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-[#1b2a42]"
         >
           <Plus className="h-4 w-4" />
@@ -468,35 +542,103 @@ function FAQsPage() {
         </div>
       )}
 
-      {(deleteMutation.isError || visibilityMutation.isError || orderMutation.isError) && (
+      {mutationError && (
         <div className="flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
           <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
-          {deleteMutation.error?.message ||
-            visibilityMutation.error?.message ||
-            orderMutation.error?.message}
+          {mutationError.message}
         </div>
       )}
 
       {/* Summary */}
       <div className="grid gap-4 sm:grid-cols-3">
-        <FAQSummaryCard
+        <SummaryCard
           label="Total FAQs"
           value={faqs.length}
           icon={<MessageSquareText className="h-5 w-5" />}
         />
-        <FAQSummaryCard
+        <SummaryCard
+          label="Categories"
+          value={categories.length}
+          icon={<FolderOpen className="h-5 w-5" />}
+        />
+        <SummaryCard
           label="Published"
           value={publishedCount}
           icon={<Eye className="h-5 w-5" />}
-          color="green"
-        />
-        <FAQSummaryCard
-          label="Hidden"
-          value={hiddenCount}
-          icon={<EyeOff className="h-5 w-5" />}
-          color="amber"
         />
       </div>
+
+      {/* Category management */}
+      <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+        <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
+          <div>
+            <div className="flex items-center gap-2">
+              <Layers className="h-5 w-5 text-[#B7792B]" />
+              <h2 className="font-bold text-[#243653]">
+                FAQ Categories
+              </h2>
+            </div>
+            <p className="mt-1 text-sm text-slate-500">
+              These categories become the section headings on your
+              public FAQs page.
+            </p>
+          </div>
+
+          <button
+            onClick={() => openCreateForm()}
+            className="inline-flex items-center justify-center gap-2 rounded-lg border border-[#243653]/20 px-4 py-2.5 text-sm font-semibold text-[#243653] transition hover:bg-slate-50"
+          >
+            <Plus className="h-4 w-4" />
+            Add FAQ / Category
+          </button>
+        </div>
+
+        {categories.length > 0 ? (
+          <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {categories.map((category) => {
+              const count = faqs.filter(
+                (faq) => faq.category === category,
+              ).length;
+
+              return (
+                <div
+                  key={category}
+                  className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50/70 p-4"
+                >
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-semibold text-[#243653]">
+                      {category}
+                    </p>
+                    <p className="mt-1 text-xs text-slate-500">
+                      {count} {count === 1 ? "question" : "questions"}
+                    </p>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => handleRenameCategory(category)}
+                    disabled={renameCategoryMutation.isPending}
+                    title="Rename category"
+                    className="shrink-0 rounded-lg border border-slate-200 bg-white p-2 text-slate-500 transition hover:border-[#243653]/30 hover:text-[#243653] disabled:opacity-50"
+                  >
+                    <PencilLine className="h-4 w-4" />
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <p className="mt-5 rounded-xl bg-slate-50 p-5 text-center text-sm text-slate-500">
+            No categories yet. Add your first FAQ to create a category.
+          </p>
+        )}
+
+        <p className="mt-4 text-xs leading-5 text-slate-500">
+          To create a new category, add an FAQ and enter its category
+          name. Renaming a category updates all FAQs currently assigned
+          to it.
+        </p>
+      </section>
 
       {/* FAQ editor */}
       {showForm && (
@@ -523,8 +665,30 @@ function FAQsPage() {
 
           <form onSubmit={handleSave} className="space-y-6 p-5 sm:p-7">
             <Field
+              label="FAQ Category *"
+              hint="Select an existing category or type a new category name."
+            >
+              <input
+                list="faq-categories"
+                className={inputClass}
+                value={form.category}
+                onChange={(event) =>
+                  updateField("category", event.target.value)
+                }
+                placeholder="e.g. Individual Tax FAQs"
+                required
+              />
+
+              <datalist id="faq-categories">
+                {categories.map((category) => (
+                  <option key={category} value={category} />
+                ))}
+              </datalist>
+            </Field>
+
+            <Field
               label="Question *"
-              hint="Write the question exactly as a visitor might ask it."
+              hint="Write the question exactly as a website visitor might ask it."
             >
               <input
                 className={inputClass}
@@ -532,51 +696,31 @@ function FAQsPage() {
                 onChange={(event) =>
                   updateField("question", event.target.value)
                 }
-                placeholder="e.g. Who needs to file a corporate tax return?"
+                placeholder="e.g. Who needs to submit an income tax return?"
                 required
               />
             </Field>
 
             <Field
               label="Answer *"
-              hint="Provide a clear, helpful answer. You can use line breaks to organize longer answers."
+              hint="Write a clear answer. Line breaks are preserved on the public page if its answer component supports them."
             >
               <textarea
                 className={textareaClass}
-                rows={6}
+                rows={7}
                 value={form.answer}
                 onChange={(event) =>
                   updateField("answer", event.target.value)
                 }
-                placeholder="Write a helpful answer for your website visitors..."
+                placeholder="Write the answer for your website visitors..."
                 required
               />
             </Field>
 
             <div className="grid gap-5 sm:grid-cols-2">
               <Field
-                label="Category"
-                hint="Choose an existing category or type a new one."
-              >
-                <input
-                  list="faq-categories"
-                  className={inputClass}
-                  value={form.category}
-                  onChange={(event) =>
-                    updateField("category", event.target.value)
-                  }
-                  placeholder="General"
-                />
-                <datalist id="faq-categories">
-                  {categories.map((category) => (
-                    <option key={category} value={category} />
-                  ))}
-                </datalist>
-              </Field>
-
-              <Field
                 label="Display Order"
-                hint="Smaller numbers appear earlier."
+                hint="Smaller numbers appear earlier within the FAQ list."
               >
                 <input
                   type="number"
@@ -584,38 +728,43 @@ function FAQsPage() {
                   className={inputClass}
                   value={form.display_order}
                   onChange={(event) =>
-                    updateField("display_order", Number(event.target.value))
+                    updateField(
+                      "display_order",
+                      Number(event.target.value),
+                    )
                   }
                 />
               </Field>
-            </div>
 
-            <div className="flex items-center justify-between rounded-xl border border-slate-200 px-4 py-4">
-              <div>
-                <p className="text-sm font-semibold text-[#243653]">
-                  Publish this FAQ
-                </p>
-                <p className="mt-1 text-xs text-slate-500">
-                  Published FAQs can be displayed to website visitors.
-                </p>
-              </div>
+              <div className="flex items-center justify-between rounded-xl border border-slate-200 px-4 py-3">
+                <div>
+                  <p className="text-sm font-semibold text-[#243653]">
+                    Publish this FAQ
+                  </p>
+                  <p className="mt-1 text-xs text-slate-500">
+                    Show this FAQ on the public website.
+                  </p>
+                </div>
 
-              <button
-                type="button"
-                onClick={() => updateField("enabled", !form.enabled)}
-                className={`relative h-6 w-11 rounded-full transition ${
-                  form.enabled ? "bg-emerald-500" : "bg-slate-300"
-                }`}
-                role="switch"
-                aria-checked={form.enabled}
-                aria-label="Toggle FAQ visibility"
-              >
-                <span
-                  className={`absolute top-1 h-4 w-4 rounded-full bg-white shadow-sm transition ${
-                    form.enabled ? "left-6" : "left-1"
+                <button
+                  type="button"
+                  onClick={() =>
+                    updateField("enabled", !form.enabled)
+                  }
+                  className={`relative h-6 w-11 shrink-0 rounded-full transition ${
+                    form.enabled ? "bg-emerald-500" : "bg-slate-300"
                   }`}
-                />
-              </button>
+                  role="switch"
+                  aria-checked={form.enabled}
+                  aria-label="Toggle FAQ visibility"
+                >
+                  <span
+                    className={`absolute top-1 h-4 w-4 rounded-full bg-white shadow-sm transition ${
+                      form.enabled ? "left-6" : "left-1"
+                    }`}
+                  />
+                </button>
+              </div>
             </div>
 
             {formError && (
@@ -659,9 +808,11 @@ function FAQsPage() {
       <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
         <div className="flex flex-col gap-4 border-b border-slate-100 p-5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
           <div>
-            <h2 className="font-bold text-[#243653]">All FAQs</h2>
+            <h2 className="font-bold text-[#243653]">
+              Manage Questions & Answers
+            </h2>
             <p className="mt-1 text-xs text-slate-500">
-              Manage questions and answers shown on your website.
+              These entries are grouped by category, like the public FAQs page.
             </p>
           </div>
 
@@ -671,16 +822,18 @@ function FAQsPage() {
               <input
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
-                placeholder="Search FAQs..."
+                placeholder="Search questions..."
                 className="w-full rounded-xl border border-slate-200 py-2.5 pl-9 pr-4 text-sm outline-none focus:border-[#243653]"
               />
             </div>
 
-            <div className="relative sm:w-48">
+            <div className="relative sm:w-52">
               <Layers className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
               <select
                 value={categoryFilter}
-                onChange={(event) => setCategoryFilter(event.target.value)}
+                onChange={(event) =>
+                  setCategoryFilter(event.target.value)
+                }
                 className="w-full appearance-none rounded-xl border border-slate-200 bg-white py-2.5 pl-9 pr-9 text-sm text-slate-700 outline-none focus:border-[#243653]"
               >
                 <option value="All">All Categories</option>
@@ -695,7 +848,7 @@ function FAQsPage() {
           </div>
         </div>
 
-        {filteredFAQs.length === 0 ? (
+        {groupedFAQs.length === 0 ? (
           <div className="px-6 py-16 text-center">
             <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-100 text-slate-400">
               <HelpCircle className="h-6 w-6" />
@@ -708,11 +861,11 @@ function FAQsPage() {
             <p className="mx-auto mt-2 max-w-sm text-sm text-slate-500">
               {search || categoryFilter !== "All"
                 ? "Try changing your search or category filter."
-                : "Add your first question and answer to help your website visitors."}
+                : "Add your first question and answer to build your public FAQs page."}
             </p>
             {!search && categoryFilter === "All" && (
               <button
-                onClick={openCreateForm}
+                onClick={() => openCreateForm()}
                 className="mt-5 inline-flex items-center gap-2 rounded-lg bg-[#243653] px-4 py-2.5 text-sm font-semibold text-white"
               >
                 <Plus className="h-4 w-4" />
@@ -722,135 +875,173 @@ function FAQsPage() {
           </div>
         ) : (
           <div className="divide-y divide-slate-100">
-            {filteredFAQs.map((faq) => {
-              const sortedFAQs = [...faqs].sort(
-                (a, b) =>
-                  a.display_order - b.display_order ||
-                  a.created_at.localeCompare(b.created_at)
-              );
-              const position = sortedFAQs.findIndex(
-                (item) => item.id === faq.id
-              );
-
-              return (
-                <article
-                  key={faq.id}
-                  className="p-5 transition hover:bg-slate-50/70 sm:px-6"
-                >
-                  <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                    <div className="flex min-w-0 flex-1 gap-3">
-                      <div className="hidden h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#243653]/10 text-[#243653] sm:flex">
-                        <HelpCircle className="h-4 w-4" />
-                      </div>
-
-                      <div className="min-w-0 flex-1">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <h3 className="font-bold text-[#243653]">
-                            {faq.question}
-                          </h3>
-
-                          <span
-                            className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${
-                              faq.enabled
-                                ? "bg-emerald-50 text-emerald-700"
-                                : "bg-amber-50 text-amber-700"
-                            }`}
-                          >
-                            {faq.enabled ? "Published" : "Hidden"}
-                          </span>
-                        </div>
-
-                        <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-slate-500">
-                          <span className="rounded-full bg-slate-100 px-2.5 py-1 font-medium">
-                            {faq.category}
-                          </span>
-                          <span>Display order: {faq.display_order}</span>
-                        </div>
-
-                        <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-slate-600">
-                          {faq.answer}
-                        </p>
-                      </div>
+            {groupedFAQs.map((group) => (
+              <div key={group.category}>
+                {/* Category heading */}
+                <div className="flex flex-col justify-between gap-3 bg-slate-50/80 px-5 py-4 sm:flex-row sm:items-center sm:px-6">
+                  <div className="flex items-center gap-3">
+                    <div className="rounded-lg bg-[#243653]/10 p-2 text-[#243653]">
+                      <FolderOpen className="h-4 w-4" />
                     </div>
-
-                    <div className="flex shrink-0 flex-wrap items-center gap-2 border-t border-slate-100 pt-3 lg:border-0 lg:pt-0">
-                      <div className="flex items-center rounded-lg border border-slate-200">
-                        <button
-                          onClick={() =>
-                            orderMutation.mutate({
-                              faq,
-                              direction: "up",
-                            })
-                          }
-                          disabled={
-                            position === 0 || orderMutation.isPending
-                          }
-                          title="Move up"
-                          className="rounded-l-lg p-2 text-slate-500 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-30"
-                        >
-                          <ChevronUp className="h-4 w-4" />
-                        </button>
-                        <div className="border-x border-slate-200 px-2.5 py-2 text-xs font-semibold text-slate-500">
-                          {position + 1}
-                        </div>
-                        <button
-                          onClick={() =>
-                            orderMutation.mutate({
-                              faq,
-                              direction: "down",
-                            })
-                          }
-                          disabled={
-                            position === sortedFAQs.length - 1 ||
-                            orderMutation.isPending
-                          }
-                          title="Move down"
-                          className="rounded-r-lg p-2 text-slate-500 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-30"
-                        >
-                          <ChevronDown className="h-4 w-4" />
-                        </button>
-                      </div>
-
-                      <button
-                        onClick={() =>
-                          visibilityMutation.mutate({
-                            id: faq.id,
-                            enabled: !faq.enabled,
-                          })
-                        }
-                        disabled={visibilityMutation.isPending}
-                        title={faq.enabled ? "Hide FAQ" : "Publish FAQ"}
-                        className="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 transition hover:bg-slate-100 disabled:opacity-50"
-                      >
-                        {faq.enabled ? (
-                          <EyeOff className="h-4 w-4" />
-                        ) : (
-                          <Eye className="h-4 w-4" />
-                        )}
-                        {faq.enabled ? "Hide" : "Publish"}
-                      </button>
-
-                      <button
-                        onClick={() => openEditForm(faq)}
-                        className="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-[#243653] transition hover:bg-slate-100"
-                      >
-                        <Pencil className="h-4 w-4" />
-                        Edit
-                      </button>
-
-                      <button
-                        onClick={() => handleDelete(faq)}
-                        disabled={deleteMutation.isPending}
-                        className="inline-flex items-center gap-2 rounded-lg border border-red-100 px-3 py-2 text-xs font-semibold text-red-600 transition hover:bg-red-50 disabled:opacity-50"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                        Delete
-                      </button>
+                    <div>
+                      <h3 className="font-bold text-[#243653]">
+                        {group.category}
+                      </h3>
+                      <p className="mt-0.5 text-xs text-slate-500">
+                        {group.items.length}{" "}
+                        {group.items.length === 1
+                          ? "question"
+                          : "questions"}
+                      </p>
                     </div>
                   </div>
-                </article>
-              );
-            })}
+
+                  <button
+                    onClick={() => openCreateForm(group.category)}
+                    className="inline-flex items-center gap-2 self-start rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-[#243653] transition hover:bg-slate-100 sm:self-auto"
+                  >
+                    <Plus className="h-3.5 w-3.5" />
+                    Add to category
+                  </button>
+                </div>
+
+                {/* Questions */}
+                <div className="divide-y divide-slate-100">
+                  {group.items.map((faq) => {
+                    const sortedFAQs = [...faqs].sort(
+                      (a, b) =>
+                        a.display_order - b.display_order ||
+                        a.created_at.localeCompare(b.created_at),
+                    );
+
+                    const position = sortedFAQs.findIndex(
+                      (item) => item.id === faq.id,
+                    );
+
+                    return (
+                      <article
+                        key={faq.id}
+                        className="p-5 transition hover:bg-slate-50/50 sm:px-6"
+                      >
+                        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                          <div className="flex min-w-0 flex-1 gap-3">
+                            <div className="hidden h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#243653]/10 text-[#243653] sm:flex">
+                              <HelpCircle className="h-4 w-4" />
+                            </div>
+
+                            <div className="min-w-0 flex-1">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <h4 className="font-semibold leading-6 text-[#243653]">
+                                  {faq.question}
+                                </h4>
+
+                                <span
+                                  className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${
+                                    faq.enabled
+                                      ? "bg-emerald-50 text-emerald-700"
+                                      : "bg-amber-50 text-amber-700"
+                                  }`}
+                                >
+                                  {faq.enabled ? "Published" : "Hidden"}
+                                </span>
+                              </div>
+
+                              <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-slate-600">
+                                {faq.answer}
+                              </p>
+
+                              <p className="mt-3 text-xs text-slate-400">
+                                Display order: {faq.display_order}
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="flex shrink-0 flex-wrap items-center gap-2 border-t border-slate-100 pt-3 lg:border-0 lg:pt-0">
+                            <div className="flex items-center rounded-lg border border-slate-200">
+                              <button
+                                onClick={() =>
+                                  orderMutation.mutate({
+                                    faq,
+                                    direction: "up",
+                                  })
+                                }
+                                disabled={
+                                  position === 0 ||
+                                  orderMutation.isPending
+                                }
+                                title="Move up"
+                                className="rounded-l-lg p-2 text-slate-500 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-30"
+                              >
+                                <ChevronUp className="h-4 w-4" />
+                              </button>
+
+                              <div className="border-x border-slate-200 px-2.5 py-2 text-xs font-semibold text-slate-500">
+                                {position + 1}
+                              </div>
+
+                              <button
+                                onClick={() =>
+                                  orderMutation.mutate({
+                                    faq,
+                                    direction: "down",
+                                  })
+                                }
+                                disabled={
+                                  position === sortedFAQs.length - 1 ||
+                                  orderMutation.isPending
+                                }
+                                title="Move down"
+                                className="rounded-r-lg p-2 text-slate-500 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-30"
+                              >
+                                <ChevronDown className="h-4 w-4" />
+                              </button>
+                            </div>
+
+                            <button
+                              onClick={() =>
+                                visibilityMutation.mutate({
+                                  id: faq.id,
+                                  enabled: !faq.enabled,
+                                })
+                              }
+                              disabled={visibilityMutation.isPending}
+                              title={
+                                faq.enabled ? "Hide FAQ" : "Publish FAQ"
+                              }
+                              className="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 transition hover:bg-slate-100 disabled:opacity-50"
+                            >
+                              {faq.enabled ? (
+                                <EyeOff className="h-4 w-4" />
+                              ) : (
+                                <Eye className="h-4 w-4" />
+                              )}
+                              {faq.enabled ? "Hide" : "Publish"}
+                            </button>
+
+                            <button
+                              onClick={() => openEditForm(faq)}
+                              className="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-[#243653] transition hover:bg-slate-100"
+                            >
+                              <Pencil className="h-4 w-4" />
+                              Edit
+                            </button>
+
+                            <button
+                              onClick={() => handleDelete(faq)}
+                              disabled={deleteMutation.isPending}
+                              className="inline-flex items-center gap-2 rounded-lg border border-red-100 px-3 py-2 text-xs font-semibold text-red-600 transition hover:bg-red-50 disabled:opacity-50"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                              Delete
+                            </button>
+                          </div>
+                        </div>
+                      </article>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
           </div>
         )}
 
@@ -859,11 +1050,16 @@ function FAQsPage() {
             Showing {filteredFAQs.length} of {faqs.length} FAQs
           </span>
           <span className="inline-flex items-center gap-1.5">
-            <ListOrdered className="h-3.5 w-3.5" />
+            <ArrowUpDown className="h-3.5 w-3.5" />
             Ordered by display sequence
           </span>
         </div>
       </section>
+
+      <p className="text-xs leading-5 text-slate-400">
+        Hidden FAQs remain available in the admin dashboard but should
+        not appear on the public website.
+      </p>
     </div>
   );
 }
