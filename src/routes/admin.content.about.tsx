@@ -26,11 +26,11 @@ type AboutSettings = {
   about_intro: string;
   consultant_photo_url: string;
   biography: string;
-  credentials: string[];
+  credentials: string;
   professional_experience: string;
-  specializations: string[];
+  specializations: string;
   professional_approach: string;
-  affiliations: string[];
+  affiliations: string;
 };
 
 const initialSettings: AboutSettings = {
@@ -40,19 +40,12 @@ const initialSettings: AboutSettings = {
   about_intro: "",
   consultant_photo_url: "",
   biography: "",
-  credentials: [],
+  credentials: "",
   professional_experience: "",
-  specializations: [],
+  specializations: "",
   professional_approach: "",
-  affiliations: [],
+  affiliations: "",
 };
-
-function parseList(value: string): string[] {
-  return value
-    .split("\n")
-    .map((item) => item.trim())
-    .filter(Boolean);
-}
 
 function Field({
   label,
@@ -181,11 +174,11 @@ function AboutContentPage() {
         about_intro: row.about_intro ?? "",
         consultant_photo_url: row.consultant_photo_url ?? "",
         biography: row.biography ?? "",
-        credentials: row.credentials ?? [],
+        credentials: Array.isArray(row.credentials) ? row.credentials.join("\n") : row.credentials ?? "",
         professional_experience: row.professional_experience ?? "",
-        specializations: row.specializations ?? [],
+        specializations: Array.isArray(row.specializations) ? row.specializations.join("\n") : row.specializations ?? "",
         professional_approach: row.professional_approach ?? "",
-        affiliations: row.affiliations ?? [],
+        affiliations: Array.isArray(row.affiliations) ? row.affiliations.join("\n") : row.affiliations ?? "",
       });
     }
 
@@ -381,11 +374,9 @@ function AboutContentPage() {
         description="Add verified academic qualifications, professional certifications and memberships."
       >
         <TextAreaField
-          label="Qualifications (one item per line)"
-          value={settings.credentials.join("\n")}
-          onChange={(value) =>
-            updateField("credentials", parseList(value))
-          }
+          label="Qualifications & Certifications"
+          value={settings.credentials}
+          onChange={(value) => updateField("credentials", value)}
           placeholder={"Bachelor's Degree in ...\nProfessional Certification in ..."}
           rows={6}
           hint="Enter each qualification on a separate line. Empty lines are ignored."
@@ -417,10 +408,8 @@ function AboutContentPage() {
       >
         <TextAreaField
           label="Specializations (one item per line)"
-          value={settings.specializations.join("\n")}
-          onChange={(value) =>
-            updateField("specializations", parseList(value))
-          }
+          value={settings.specializations}
+          onChange={(value) => updateField("specializations", value)}
           placeholder={"Income Tax Consultancy\nVAT Compliance\nCompany Registration\nCorporate Tax Advisory"}
           rows={7}
           hint="Each line becomes a separate specialization."
@@ -452,9 +441,8 @@ function AboutContentPage() {
       >
         <TextAreaField
           label="Affiliations (one item per line)"
-          value={settings.affiliations.join("\n")}
-          onChange={(value) =>
-            updateField("affiliations", parseList(value))
+          value={settings.affiliations}
+          onChange={(value) => updateField("affiliations", value)
           }
           placeholder={"Professional organization or association\nVerified membership"}
           rows={5}
