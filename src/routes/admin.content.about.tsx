@@ -141,6 +141,7 @@ function AboutContentPage() {
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
 
@@ -197,6 +198,65 @@ function AboutContentPage() {
     setMessage("");
     setError("");
   }
+
+  async function handlePhotoUpload(
+  event: React.ChangeEvent<HTMLInputElement>
+) {
+  const file = event.target.files?.[0];
+
+  if (!file) return;
+
+  setMessage("");
+  setError("");
+
+  // Only PNG files are accepted
+  if (file.type !== "image/png") {
+    setError("Please select a PNG image.");
+    event.target.value = "";
+    return;
+  }
+
+  // Maximum file size: 5 MB
+  if (file.size > 5 * 1024 * 1024) {
+    setError("Image size must be 5 MB or less.");
+    event.target.value = "";
+    return;
+  }
+
+  setUploading(true);
+
+  try {
+    const filePath = `about/consultant-${Date.now()}.png`;
+
+    const { error: uploadError } = await supabase.storage
+      .from("site-images")
+      .upload(filePath, file, {
+        contentType: "image/png",
+        upsert: true,
+      });
+
+    if (uploadError) {
+      throw uploadError;
+    }
+
+    const { data } = supabase.storage
+      .from("site-images")
+      .getPublicUrl(filePath);
+
+    updateField("consultant_photo_url", data.publicUrl);
+
+    setMessage("Photograph uploaded successfully. Click Save Changes to publish it.");
+  } catch (err) {
+    setError(
+      err instanceof Error
+        ? err.message
+        : "Failed to upload photograph."
+    );
+  } finally {
+    setUploading(false);
+    event.target.value = "";
+  }
+}
 
   async function handleSave() {
     setSaving(true);
@@ -319,37 +379,83 @@ function AboutContentPage() {
         />
       </SectionCard>
 
+      
       {/* Consultant photo */}
       <SectionCard
         icon={ImageIcon}
         title="Professional Photograph"
-        description="Add the consultant's professional photograph displayed in the left column of the About page."
+        description="Upload the consultant's professional PNG photograph displayed on the public About page."
       >
-        <Field
-          label="Photograph URL"
-          type="url"
-          value={settings.consultant_photo_url}
-          onChange={(value) =>
-            updateField("consultant_photo_url", value)
-          }
-          placeholder="https://example.com/consultant-photo.jpg"
-        />
+        <div className="space-y-4">
+          <div>
+            <label className="mb-2 block text-sm font-medium text-slate-700">
+              Upload Consultant Photograph
+            </label>
 
-        {settings.consultant_photo_url && (
-          <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
-            <p className="mb-3 text-xs font-medium uppercase tracking-wide text-slate-500">
-              Photograph Preview
-            </p>
-            <img
-              src={settings.consultant_photo_url}
-              alt="Consultant preview"
-              className="aspect-[4/5] w-48 rounded-md border bg-white object-cover"
-              onError={(e) => {
-                e.currentTarget.style.display = "none";
-              }}
-            />
+            <label className="flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-slate-300 bg-slate-50 px-6 py-8 text-center transition hover:border-[#243653] hover:bg-slate-100">
+              {uploading ? (
+                <>
+                  <LoaderCircle className="mb-3 h-9 w-9 animate-spin text-[#243653]" />
+                  <span className="text-sm font-semibold text-[#243653]">
+                    Uploading photograph...
+                  </span>
+                </>
+              ) : (
+                <>
+                  <ImageIcon className="mb-3 h-9 w-9 text-slate-400" />
+                  <span className="text-sm font-semibold text-[#243653]">
+                    Click to upload PNG photograph
+                  </span>
+                  <span className="mt-2 text-xs text-slate-500">
+                    PNG format only · Maximum file size: 5 MB
+                  </span>
+                </>
+              )}
+
+              <input
+                type="file"
+                accept="image/png,.png"
+                disabled={uploading}
+                onChange={handlePhotoUpload}
+                className="hidden"
+              />
+            </label>
           </div>
-        )}
+
+          {settings.consultant_photo_url && (
+            <div className="rounded-xl border border-slate-200 bg-white p-4">
+              <div className="mb-3 flex items-center justify-between">
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  Photograph Preview
+                </p>
+
+                <span className="rounded-full bg-green-50 px-2.5 py-1 text-xs font-medium text-green-700">
+                  Uploaded
+                </span>
+              </div>
+
+              <img
+                src={settings.consultant_photo_url}
+                alt="Consultant photograph preview"
+                className="aspect-[4/5] w-48 rounded-lg border border-slate-200 bg-slate-50 object-cover"
+              />
+
+              <button
+                type="button"
+                onClick={() =>
+                  updateField("consultant_photo_url", "")
+                }
+                className="mt-3 text-sm font-medium text-red-600 hover:text-red-700"
+              >
+                Remove photograph
+              </button>
+
+              <p className="mt-3 break-all text-xs text-slate-400">
+                {settings.consultant_photo_url}
+              </p>
+            </div>
+          )}
+        </div>
       </SectionCard>
 
       {/* Biography */}

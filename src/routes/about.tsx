@@ -27,11 +27,11 @@ type AboutPageContent = {
   about_intro: string | null;
   consultant_photo_url: string | null;
   biography: string | null;
-  credentials: string[] | null;
+  credentials: string | null;
   professional_experience: string | null;
-  specializations: string[] | null;
+  specializations: string | null;
   professional_approach: string | null;
-  affiliations: string[] | null;
+  affiliations: string | null;
 };
 
 function Section({
@@ -44,7 +44,7 @@ function Section({
   return (
     <section className="border-b py-8 last:border-0">
       <h2 className="text-xl font-semibold">{title}</h2>
-      <div className="mt-3 text-muted-foreground">{children}</div>
+      <div className="mt-3 whitespace-pre-line text-muted-foreground">{children}</div>
     </section>
   );
 }
@@ -71,10 +71,12 @@ function About() {
 
   const content = aboutQuery.data;
 
-  const specializations =
-    content?.specializations?.length
-      ? content.specializations
-      : services.map((service) => service.title);
+  const specializations = content?.specializations?.trim()
+  ? content.specializations
+      .split(/\r?\n/)
+      .map((item) => item.trim())
+      .filter(Boolean)
+  : services.map((service) => service.title);
 
   return (
     <>
@@ -120,16 +122,12 @@ function About() {
           </Section>
 
           <Section title="Qualifications and certifications">
-            {content?.credentials?.length ? (
-              <ul className="list-disc space-y-1 pl-5">
-                {content.credentials.map((item) => (
-                  <li key={item}>{item}</li>
-                ))}
-              </ul>
+            {content?.credentials?.trim() ? (
+              <p className="whitespace-pre-line">{content.credentials}</p>
             ) : (
-              <Placeholder>
-                [Verified qualifications will be listed here]
-              </Placeholder>
+            <Placeholder>
+              [Verified qualifications will be listed here]
+            </Placeholder>
             )}
           </Section>
 
@@ -164,12 +162,8 @@ function About() {
           </Section>
 
           <Section title="Professional affiliations">
-            {content?.affiliations?.length ? (
-              <ul className="list-disc space-y-1 pl-5">
-                {content.affiliations.map((item) => (
-                  <li key={item}>{item}</li>
-                ))}
-              </ul>
+            {content?.affiliations?.trim() ? (
+              <p className="whitespace-pre-line">{content.affiliations}</p>
             ) : (
               <Placeholder>
                 [Verified professional affiliations, if applicable]
