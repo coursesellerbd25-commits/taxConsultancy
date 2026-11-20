@@ -227,7 +227,19 @@ function AboutContentPage() {
 
   try {
     const filePath = `about/consultant-${Date.now()}.png`;
+    const {
+  data: { user },
+  error: authError,
+} = await supabase.auth.getUser();
 
+console.log("Current Supabase user:", user);
+console.log("Authentication error:", authError);
+
+if (!user) {
+  throw new Error(
+    "You are not authenticated with Supabase. Please log in again."
+  );
+}
     const { error: uploadError } = await supabase.storage
       .from("site-images")
       .upload(filePath, file, {
