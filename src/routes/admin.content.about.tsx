@@ -244,11 +244,11 @@ if (!user) {
       .from("site-images")
       .upload(filePath, file, {
         contentType: "image/png",
-        upsert: true,
+        upsert: false,
       });
 
     if (uploadError) {
-      throw uploadError;
+      throw new Error(`Storage upload failed: ${uploadError.message}`);
     }
 
     const { data } = supabase.storage
@@ -343,7 +343,7 @@ if (!user) {
 
       {error && (
         <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-          <p className="font-semibold">Could not save or load content</p>
+          <p className="font-semibold">Operation failed</p>
           <p className="mt-1">{error}</p>
           <button
             type="button"
