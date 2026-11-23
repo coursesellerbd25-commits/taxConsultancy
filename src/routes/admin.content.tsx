@@ -269,17 +269,6 @@ function WebsiteContentPage() {
         <div className="mt-0.5 text-[#B7792B]">
           <Sparkles size={18} />
         </div>
-
-        <div>
-          <h3 className="text-sm font-semibold text-[#243653]">
-            Content publishing tip
-          </h3>
-          <p className="mt-1 text-sm leading-6 text-slate-600">
-            Services and Business Solutions now have separate management
-            pages. Make sure each public website section reads from its
-            corresponding content source.
-          </p>
-        </div>
       </div>
     </div>
   );
