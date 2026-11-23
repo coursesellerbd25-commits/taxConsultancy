@@ -263,13 +263,6 @@ function WebsiteContentPage() {
           ))}
         </div>
       </section>
-
-      {/* Helpful note */}
-      <div className="flex items-start gap-3 rounded-xl border border-[#B7792B]/20 bg-[#B7792B]/5 p-4">
-        <div className="mt-0.5 text-[#B7792B]">
-          <Sparkles size={18} />
-        </div>
-      </div>
     </div>
   );
 }
