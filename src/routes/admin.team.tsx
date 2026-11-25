@@ -1,6 +1,7 @@
 
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import type { FormEvent } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ShieldCheck,
@@ -18,11 +19,9 @@ import {
   CheckCircle2,
   Trash2,
 } from "lucide-react";
-import { useEffect } from "react";
 import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
-
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -30,12 +29,6 @@ import { Label } from "@/components/ui/label";
 export const Route = createFileRoute("/admin/team")({
   component: AdminTeamPage,
 });
-
-useEffect(() => {
-  supabase.auth.getUser().then(({ data }) => {
-    setCurrentUserId(data.user?.id ?? null);
-  });
-}, []);
 
 type AdminMember = {
   id: string;
@@ -56,7 +49,9 @@ function formatDate(value: string | null) {
 
   const date = new Date(value);
 
-  if (Number.isNaN(date.getTime())) return "Not available";
+  if (Number.isNaN(date.getTime())) {
+    return "Not available";
+  }
 
   return new Intl.DateTimeFormat("en-BD", {
     day: "numeric",
@@ -95,16 +90,36 @@ function AdminTeamPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
+  // Get the currently signed-in user's ID.
+  useEffect(() => {
+    let isMounted = true;
+
+    supabase.auth.getUser().then(({ data, error }) => {
+      if (!isMounted) return;
+
+      if (error) {
+        console.error("Could not get current user:", error.message);
+        return;
+      }
+
+      setCurrentUserId(data.user?.id ?? null);
+    });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  // Load administrator accounts.
   const teamQuery = useQuery({
     queryKey: ["admin-team"],
     queryFn: async () => {
-      const { data, error } = await supabase.functions.invoke<TeamResponse>(
-        "admin-team",
-        {
+      const { data, error } =
+        await supabase.functions.invoke<TeamResponse>("admin-team", {
           body: { action: "list" },
-        },
-      );
+        });
 
       if (error || data?.error) {
         throw new Error(getFunctionError(error, data));
@@ -114,25 +129,26 @@ function AdminTeamPage() {
     },
   });
 
+  // Create a new administrator.
   const createAdminMutation = useMutation({
     mutationFn: async (values: { email: string; password: string }) => {
-      const { data, error } = await supabase.functions.invoke<TeamResponse>(
-        "admin-team",
-        {
+      const { data, error } =
+        await supabase.functions.invoke<TeamResponse>("admin-team", {
           body: {
             action: "create",
             email: values.email,
             password: values.password,
           },
-        },
-      );
+        });
 
       if (error || data?.error) {
         throw new Error(getFunctionError(error, data));
       }
 
       if (!data?.member) {
-        throw new Error("The server did not return the created administrator.");
+        throw new Error(
+          "The server did not return the created administrator.",
+        );
       }
 
       return data.member;
@@ -147,45 +163,51 @@ function AdminTeamPage() {
         queryKey: ["admin-team"],
       });
 
-      toast.success(`Administrator account created for ${member.email}.`);
+      toast.success(
+        `Administrator account created for ${member.email}.`,
+      );
     },
 
     onError: (error) => {
-      toast.error(error.message || "Could not create administrator account.");
+      toast.error(
+        error.message || "Could not create administrator account.",
+      );
     },
   });
 
+  // Delete an administrator.
   const deleteAdminMutation = useMutation({
-  mutationFn: async (adminId: string) => {
-    const { data, error } = await supabase.functions.invoke<TeamResponse>(
-      "admin-team",
-      {
-        body: {
-          action: "delete",
-          userId: adminId,
-        },
-      },
-    );
+    mutationFn: async (adminId: string) => {
+      const { data, error } =
+        await supabase.functions.invoke<TeamResponse>("admin-team", {
+          body: {
+            action: "delete",
+            userId: adminId,
+          },
+        });
 
-    if (error || data?.error) {
-      throw new Error(getFunctionError(error, data));
-    }
-  },
+      if (error || data?.error) {
+        throw new Error(getFunctionError(error, data));
+      }
+    },
 
-  onSuccess: async () => {
-    await queryClient.invalidateQueries({
-      queryKey: ["admin-team"],
-    });
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({
+        queryKey: ["admin-team"],
+      });
 
-    toast.success("Administrator deleted successfully.");
-  },
+      toast.success("Administrator deleted successfully.");
+    },
 
-  onError: (error) => {
-    toast.error(error.message || "Could not delete administrator.");
-  },
-});
+    onError: (error) => {
+      toast.error(
+        error.message || "Could not delete administrator.",
+      );
+    },
+  });
 
-  const handleCreateAdmin = (event: React.FormEvent<HTMLFormElement>) => {
+  // Validate and submit the create-admin form.
+  const handleCreateAdmin = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
     const normalizedEmail = email.trim().toLowerCase();
@@ -212,13 +234,14 @@ function AdminTeamPage() {
   };
 
   const members = teamQuery.data ?? [];
-  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+
   const currentAdmin = members.find(
-  (member) => member.id === currentUserId,
-);
+    (member) => member.id === currentUserId,
+  );
 
-const isMainAdmin = currentAdmin?.role === "main_admin";
+  const isMainAdmin = currentAdmin?.role === "main_admin";
 
+  // Loading state.
   if (teamQuery.isLoading) {
     return (
       <div className="flex min-h-[400px] items-center justify-center">
@@ -230,11 +253,15 @@ const isMainAdmin = currentAdmin?.role === "main_admin";
     );
   }
 
+  // Error state.
   if (teamQuery.isError) {
     return (
       <div className="rounded-xl border border-red-200 bg-red-50 p-6">
         <div className="flex items-start gap-3">
-          <AlertCircle size={20} className="mt-0.5 shrink-0 text-red-600" />
+          <AlertCircle
+            size={20}
+            className="mt-0.5 shrink-0 text-red-600"
+          />
 
           <div>
             <h2 className="font-semibold text-red-800">
@@ -246,8 +273,9 @@ const isMainAdmin = currentAdmin?.role === "main_admin";
             </p>
 
             <p className="mt-2 text-xs leading-relaxed text-red-600">
-              Make sure the admin-team Edge Function is deployed and that your
-              signed-in account has permission to manage administrators.
+              Make sure the admin-team Edge Function is deployed and
+              your signed-in account has permission to manage
+              administrators.
             </p>
 
             <Button
@@ -279,8 +307,8 @@ const isMainAdmin = currentAdmin?.role === "main_admin";
           </h1>
 
           <p className="mt-2 max-w-2xl text-sm leading-relaxed text-slate-500">
-            Manage the people who have administrative access to Corporate Tax
-            Bangladesh.
+            Manage the people who have administrative access to
+            Corporate Tax Bangladesh.
           </p>
         </div>
 
@@ -292,7 +320,9 @@ const isMainAdmin = currentAdmin?.role === "main_admin";
         >
           <RefreshCw
             size={15}
-            className={`mr-2 ${teamQuery.isFetching ? "animate-spin" : ""}`}
+            className={`mr-2 ${
+              teamQuery.isFetching ? "animate-spin" : ""
+            }`}
           />
           Refresh team
         </Button>
@@ -300,7 +330,10 @@ const isMainAdmin = currentAdmin?.role === "main_admin";
 
       {/* Access notice */}
       <div className="flex items-start gap-3 rounded-xl border border-[#B7792B]/20 bg-[#B7792B]/[0.06] p-4">
-        <ShieldCheck size={19} className="mt-0.5 shrink-0 text-[#B7792B]" />
+        <ShieldCheck
+          size={19}
+          className="mt-0.5 shrink-0 text-[#B7792B]"
+        />
 
         <div>
           <h2 className="text-sm font-semibold text-[#243653]">
@@ -308,10 +341,10 @@ const isMainAdmin = currentAdmin?.role === "main_admin";
           </h2>
 
           <p className="mt-1 text-sm leading-relaxed text-slate-600">
-            Only an authorized main administrator should be able to create
-            additional administrator accounts. New administrators receive
-            access to the admin dashboard, subject to the permissions enforced
-            by your backend.
+            Only an authorized main administrator should be able to
+            create additional administrator accounts. New
+            administrators receive access to the admin dashboard,
+            subject to the permissions enforced by your backend.
           </p>
         </div>
       </div>
@@ -372,13 +405,16 @@ const isMainAdmin = currentAdmin?.role === "main_admin";
             </h2>
 
             <p className="mt-1 text-sm text-slate-500">
-              Create a new account for someone who needs access to the admin
-              dashboard.
+              Create a new account for someone who needs access to
+              the admin dashboard.
             </p>
           </div>
         </div>
 
-        <form onSubmit={handleCreateAdmin} className="space-y-5 p-5 sm:p-6">
+        <form
+          onSubmit={handleCreateAdmin}
+          className="space-y-5 p-5 sm:p-6"
+        >
           <div className="grid gap-5 md:grid-cols-2">
             <div className="space-y-2">
               <Label
@@ -438,16 +474,22 @@ const isMainAdmin = currentAdmin?.role === "main_admin";
                 <button
                   type="button"
                   onClick={() => setShowPassword((current) => !current)}
-                  aria-label={showPassword ? "Hide password" : "Show password"}
+                  aria-label={
+                    showPassword ? "Hide password" : "Show password"
+                  }
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 transition-colors hover:text-slate-700"
                 >
-                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  {showPassword ? (
+                    <EyeOff size={16} />
+                  ) : (
+                    <Eye size={16} />
+                  )}
                 </button>
               </div>
 
               <p className="text-xs text-slate-400">
-                Use a unique password. Share it securely with the new
-                administrator.
+                Use a unique password. Share it securely with the
+                new administrator.
               </p>
             </div>
           </div>
@@ -458,9 +500,10 @@ const isMainAdmin = currentAdmin?.role === "main_admin";
                 size={15}
                 className="mt-0.5 shrink-0 text-[#B7792B]"
               />
+
               <span>
-                The new account will be created with the Administrator role,
-                not Main administrator.
+                The new account will be created with the Administrator
+                role, not Main administrator.
               </span>
             </div>
 
@@ -514,8 +557,8 @@ const isMainAdmin = currentAdmin?.role === "main_admin";
             </h3>
 
             <p className="mt-2 max-w-sm text-sm leading-relaxed text-slate-500">
-              Once administrator accounts are registered, they will appear
-              here.
+              Once administrator accounts are registered, they will
+              appear here.
             </p>
           </div>
         ) : (
@@ -541,12 +584,13 @@ const isMainAdmin = currentAdmin?.role === "main_admin";
                   </div>
                 </div>
 
-                <div className="flex flex-wrap gap-x-6 gap-y-2 pl-14 text-xs text-slate-500 sm:pl-0">
+                <div className="flex flex-wrap items-center gap-x-6 gap-y-3 pl-14 text-xs text-slate-500 sm:pl-0">
                   <div>
                     <div className="mb-1 flex items-center gap-1.5 text-slate-400">
                       <CalendarDays size={13} />
                       Created
                     </div>
+
                     <p className="font-medium text-slate-600">
                       {formatDate(member.created_at)}
                     </p>
@@ -557,36 +601,41 @@ const isMainAdmin = currentAdmin?.role === "main_admin";
                       <CheckCircle2 size={13} />
                       Last sign-in
                     </div>
+
                     <p className="font-medium text-slate-600">
                       {formatDate(member.last_sign_in_at)}
                     </p>
                   </div>
-                  {isMainAdmin &&
-  member.role === "admin" &&
-  member.id !== currentUserId && (
-    <Button
-      variant="outline"
-      size="sm"
-      disabled={deleteAdminMutation.isPending}
-      onClick={() => {
-        const confirmed = window.confirm(
-          `Are you sure you want to delete administrator ${member.email}? This action cannot be undone.`,
-        );
 
-        if (confirmed) {
-          deleteAdminMutation.mutate(member.id);
-        }
-      }}
-      className="border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
-    >
-      {deleteAdminMutation.isPending ? (
-        <Loader2 size={15} className="mr-2 animate-spin" />
-      ) : (
-        <Trash2 size={15} className="mr-2" />
-      )}
-      Delete
-    </Button>
-  )}
+                  {isMainAdmin &&
+                    member.role === "admin" &&
+                    member.id !== currentUserId && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={deleteAdminMutation.isPending}
+                        onClick={() => {
+                          const confirmed = window.confirm(
+                            `Are you sure you want to delete administrator ${member.email}? This action cannot be undone.`,
+                          );
+
+                          if (confirmed) {
+                            deleteAdminMutation.mutate(member.id);
+                          }
+                        }}
+                        className="border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
+                      >
+                        {deleteAdminMutation.isPending ? (
+                          <Loader2
+                            size={15}
+                            className="mr-2 animate-spin"
+                          />
+                        ) : (
+                          <Trash2 size={15} className="mr-2" />
+                        )}
+                        Delete
+                      </Button>
+                    )}
                 </div>
               </div>
             ))}
@@ -596,7 +645,10 @@ const isMainAdmin = currentAdmin?.role === "main_admin";
 
       {/* Security footer */}
       <div className="flex items-start gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4">
-        <ShieldCheck size={18} className="mt-0.5 shrink-0 text-slate-500" />
+        <ShieldCheck
+          size={18}
+          className="mt-0.5 shrink-0 text-slate-500"
+        />
 
         <div>
           <h3 className="text-sm font-semibold text-[#243653]">
@@ -604,10 +656,10 @@ const isMainAdmin = currentAdmin?.role === "main_admin";
           </h3>
 
           <p className="mt-1 text-xs leading-relaxed text-slate-500">
-            Administrator creation and team listing must be authorized by the
-            server. Never expose your Supabase service-role key in frontend
-            code. Only your designated main administrator should be allowed
-            to create additional administrators.
+            Administrator creation and team listing must be authorized
+            by the server. Never expose your Supabase service-role key
+            in frontend code. Only your designated main administrator
+            should be allowed to create additional administrators.
           </p>
         </div>
       </div>
