@@ -1,7 +1,5 @@
-
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
-import type { FormEvent } from "react";
+import { useState, type FormEvent } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ShieldCheck,
@@ -42,6 +40,11 @@ type TeamResponse = {
   members?: AdminMember[];
   member?: AdminMember;
   error?: string;
+};
+
+type TeamData = {
+  members: AdminMember[];
+  currentUserId: string | null;
 };
 
 function formatDate(value: string | null) {
@@ -90,30 +93,9 @@ function AdminTeamPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
-  // Get the currently signed-in user's ID.
-  useEffect(() => {
-    let isMounted = true;
-
-    supabase.auth.getUser().then(({ data, error }) => {
-      if (!isMounted) return;
-
-      if (error) {
-        console.error("Could not get current user:", error.message);
-        return;
-      }
-
-      setCurrentUserId(data.user?.id ?? null);
-    });
-
-    return () => {
-      isMounted = false;
-    };
-  }, []);
-
-  // Load administrator accounts.
-  const teamQuery = useQuery({
+  // Fetch the administrator team and current authenticated user.
+  const teamQuery = useQuery<TeamData>({
     queryKey: ["admin-team"],
     queryFn: async () => {
       const { data, error } =
@@ -125,13 +107,30 @@ function AdminTeamPage() {
         throw new Error(getFunctionError(error, data));
       }
 
-      return data?.members ?? [];
+      const { data: authData } = await supabase.auth.getUser();
+
+      return {
+        members: data?.members ?? [],
+        currentUserId: authData.user?.id ?? null,
+      };
     },
   });
 
-  // Create a new administrator.
+  const members = teamQuery.data?.members ?? [];
+  const currentUserId = teamQuery.data?.currentUserId ?? null;
+
+  const currentAdmin = members.find(
+    (member) => member.id === currentUserId,
+  );
+
+  const isMainAdmin = currentAdmin?.role === "main_admin";
+
+  // Create administrator
   const createAdminMutation = useMutation({
-    mutationFn: async (values: { email: string; password: string }) => {
+    mutationFn: async (values: {
+      email: string;
+      password: string;
+    }) => {
       const { data, error } =
         await supabase.functions.invoke<TeamResponse>("admin-team", {
           body: {
@@ -175,7 +174,7 @@ function AdminTeamPage() {
     },
   });
 
-  // Delete an administrator.
+  // Delete administrator
   const deleteAdminMutation = useMutation({
     mutationFn: async (adminId: string) => {
       const { data, error } =
@@ -206,7 +205,7 @@ function AdminTeamPage() {
     },
   });
 
-  // Validate and submit the create-admin form.
+  // Form submission
   const handleCreateAdmin = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
@@ -233,15 +232,7 @@ function AdminTeamPage() {
     });
   };
 
-  const members = teamQuery.data ?? [];
-
-  const currentAdmin = members.find(
-    (member) => member.id === currentUserId,
-  );
-
-  const isMainAdmin = currentAdmin?.role === "main_admin";
-
-  // Loading state.
+  // Loading state
   if (teamQuery.isLoading) {
     return (
       <div className="flex min-h-[400px] items-center justify-center">
@@ -253,7 +244,7 @@ function AdminTeamPage() {
     );
   }
 
-  // Error state.
+  // Error state
   if (teamQuery.isError) {
     return (
       <div className="rounded-xl border border-red-200 bg-red-50 p-6">
@@ -273,9 +264,9 @@ function AdminTeamPage() {
             </p>
 
             <p className="mt-2 text-xs leading-relaxed text-red-600">
-              Make sure the admin-team Edge Function is deployed and
-              your signed-in account has permission to manage
-              administrators.
+              Make sure the admin-team Edge Function is deployed
+              and that your signed-in account has permission to
+              manage administrators.
             </p>
 
             <Button
@@ -341,8 +332,8 @@ function AdminTeamPage() {
           </h2>
 
           <p className="mt-1 text-sm leading-relaxed text-slate-600">
-            Only an authorized main administrator should be able to
-            create additional administrator accounts. New
+            Only an authorized main administrator should be able
+            to create additional administrator accounts. New
             administrators receive access to the admin dashboard,
             subject to the permissions enforced by your backend.
           </p>
@@ -383,7 +374,9 @@ function AdminTeamPage() {
           </div>
 
           <p className="mt-3 text-3xl font-bold tabular-nums text-[#243653]">
-            {members.filter((member) => member.role === "main_admin").length}
+            {members.filter(
+              (member) => member.role === "main_admin",
+            ).length}
           </p>
 
           <p className="mt-1 text-xs text-slate-400">
@@ -405,8 +398,8 @@ function AdminTeamPage() {
             </h2>
 
             <p className="mt-1 text-sm text-slate-500">
-              Create a new account for someone who needs access to
-              the admin dashboard.
+              Create a new account for someone who needs access
+              to the admin dashboard.
             </p>
           </div>
         </div>
@@ -416,6 +409,7 @@ function AdminTeamPage() {
           className="space-y-5 p-5 sm:p-6"
         >
           <div className="grid gap-5 md:grid-cols-2">
+            {/* Email */}
             <div className="space-y-2">
               <Label
                 htmlFor="admin-email"
@@ -444,6 +438,7 @@ function AdminTeamPage() {
               </div>
             </div>
 
+            {/* Password */}
             <div className="space-y-2">
               <Label
                 htmlFor="admin-password"
@@ -473,7 +468,9 @@ function AdminTeamPage() {
 
                 <button
                   type="button"
-                  onClick={() => setShowPassword((current) => !current)}
+                  onClick={() =>
+                    setShowPassword((current) => !current)
+                  }
                   aria-label={
                     showPassword ? "Hide password" : "Show password"
                   }
@@ -502,8 +499,8 @@ function AdminTeamPage() {
               />
 
               <span>
-                The new account will be created with the Administrator
-                role, not Main administrator.
+                The new account will be created with the
+                Administrator role, not Main administrator.
               </span>
             </div>
 
@@ -521,6 +518,7 @@ function AdminTeamPage() {
               ) : (
                 <UserPlus size={16} className="mr-2" />
               )}
+
               Create administrator
             </Button>
           </div>
@@ -557,8 +555,8 @@ function AdminTeamPage() {
             </h3>
 
             <p className="mt-2 max-w-sm text-sm leading-relaxed text-slate-500">
-              Once administrator accounts are registered, they will
-              appear here.
+              Once administrator accounts are registered, they
+              will appear here.
             </p>
           </div>
         ) : (
@@ -568,6 +566,7 @@ function AdminTeamPage() {
                 key={member.id}
                 className="flex flex-col justify-between gap-4 px-5 py-4 sm:flex-row sm:items-center sm:px-6"
               >
+                {/* Member identity */}
                 <div className="flex min-w-0 items-center gap-3">
                   <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#243653]/[0.07] text-sm font-semibold uppercase text-[#243653]">
                     {member.email?.charAt(0) || "A"}
@@ -584,6 +583,7 @@ function AdminTeamPage() {
                   </div>
                 </div>
 
+                {/* Account dates and actions */}
                 <div className="flex flex-wrap items-center gap-x-6 gap-y-3 pl-14 text-xs text-slate-500 sm:pl-0">
                   <div>
                     <div className="mb-1 flex items-center gap-1.5 text-slate-400">
@@ -607,6 +607,7 @@ function AdminTeamPage() {
                     </p>
                   </div>
 
+                  {/* Delete action */}
                   {isMainAdmin &&
                     member.role === "admin" &&
                     member.id !== currentUserId && (
@@ -633,6 +634,7 @@ function AdminTeamPage() {
                         ) : (
                           <Trash2 size={15} className="mr-2" />
                         )}
+
                         Delete
                       </Button>
                     )}
@@ -656,10 +658,11 @@ function AdminTeamPage() {
           </h3>
 
           <p className="mt-1 text-xs leading-relaxed text-slate-500">
-            Administrator creation and team listing must be authorized
-            by the server. Never expose your Supabase service-role key
-            in frontend code. Only your designated main administrator
-            should be allowed to create additional administrators.
+            Administrator creation and team listing must be
+            authorized by the server. Never expose your Supabase
+            service-role key in frontend code. Only your
+            designated main administrator should be allowed to
+            create additional administrators.
           </p>
         </div>
       </div>
