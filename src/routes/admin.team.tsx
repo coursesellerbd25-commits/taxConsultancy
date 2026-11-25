@@ -16,7 +16,9 @@ import {
   CalendarDays,
   AlertCircle,
   CheckCircle2,
+  Trash2,
 } from "lucide-react";
+import { useEffect } from "react";
 import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -28,6 +30,12 @@ import { Label } from "@/components/ui/label";
 export const Route = createFileRoute("/admin/team")({
   component: AdminTeamPage,
 });
+
+useEffect(() => {
+  supabase.auth.getUser().then(({ data }) => {
+    setCurrentUserId(data.user?.id ?? null);
+  });
+}, []);
 
 type AdminMember = {
   id: string;
@@ -147,6 +155,36 @@ function AdminTeamPage() {
     },
   });
 
+  const deleteAdminMutation = useMutation({
+  mutationFn: async (adminId: string) => {
+    const { data, error } = await supabase.functions.invoke<TeamResponse>(
+      "admin-team",
+      {
+        body: {
+          action: "delete",
+          userId: adminId,
+        },
+      },
+    );
+
+    if (error || data?.error) {
+      throw new Error(getFunctionError(error, data));
+    }
+  },
+
+  onSuccess: async () => {
+    await queryClient.invalidateQueries({
+      queryKey: ["admin-team"],
+    });
+
+    toast.success("Administrator deleted successfully.");
+  },
+
+  onError: (error) => {
+    toast.error(error.message || "Could not delete administrator.");
+  },
+});
+
   const handleCreateAdmin = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
@@ -174,6 +212,12 @@ function AdminTeamPage() {
   };
 
   const members = teamQuery.data ?? [];
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const currentAdmin = members.find(
+  (member) => member.id === currentUserId,
+);
+
+const isMainAdmin = currentAdmin?.role === "main_admin";
 
   if (teamQuery.isLoading) {
     return (
@@ -517,6 +561,32 @@ function AdminTeamPage() {
                       {formatDate(member.last_sign_in_at)}
                     </p>
                   </div>
+                  {isMainAdmin &&
+  member.role === "admin" &&
+  member.id !== currentUserId && (
+    <Button
+      variant="outline"
+      size="sm"
+      disabled={deleteAdminMutation.isPending}
+      onClick={() => {
+        const confirmed = window.confirm(
+          `Are you sure you want to delete administrator ${member.email}? This action cannot be undone.`,
+        );
+
+        if (confirmed) {
+          deleteAdminMutation.mutate(member.id);
+        }
+      }}
+      className="border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
+    >
+      {deleteAdminMutation.isPending ? (
+        <Loader2 size={15} className="mr-2 animate-spin" />
+      ) : (
+        <Trash2 size={15} className="mr-2" />
+      )}
+      Delete
+    </Button>
+  )}
                 </div>
               </div>
             ))}
