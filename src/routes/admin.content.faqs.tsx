@@ -87,6 +87,7 @@ function AdminFAQs() {
     null
   );
   const [newCategoryName, setNewCategoryName] = useState("");
+  const [addCategoryName, setAddCategoryName] = useState("");
 
   // --------------------------------------------------
   // FETCH FAQs
@@ -116,9 +117,20 @@ function AdminFAQs() {
   });
 
   const refreshFAQs = async () => {
-    await queryClient.invalidateQueries({ queryKey: ["admin-faqs"] });
-    await queryClient.invalidateQueries({ queryKey: ["public-faqs"] });
-  };
+  await queryClient.invalidateQueries({
+    queryKey: ["admin-faqs"],
+  });
+
+  await queryClient.invalidateQueries({
+    queryKey: ["public-faqs"],
+  });
+
+  await queryClient.invalidateQueries({
+    queryKey: ["admin-faq-categories"],
+  });
+
+  await refetchCategories();
+};
 
   const showSuccess = (message: string) => {
     setNotice(message);
@@ -132,26 +144,27 @@ function AdminFAQs() {
     setNotice("");
   };
 
-  // --------------------------------------------------
-  // CATEGORY LIST
-  // --------------------------------------------------
+// --------------------------------------------------
+// FETCH FAQ CATEGORIES
+// --------------------------------------------------
 
-  const categories = useMemo(() => {
-    const existingCategories = faqs.map((faq) => faq.category);
+const {
+  data: categories = [],
+  isLoading: categoriesLoading,
+  refetch: refetchCategories,
+} = useQuery({
+  queryKey: ["admin-faq-categories"],
+  queryFn: async () => {
+    const { data, error } = await supabase
+      .from("faq_categories")
+      .select("name")
+      .order("name", { ascending: true });
 
-    return Array.from(
-      new Set([...DEFAULT_CATEGORIES, ...existingCategories])
-    ).sort((a, b) => {
-      const aIndex = DEFAULT_CATEGORIES.indexOf(a);
-      const bIndex = DEFAULT_CATEGORIES.indexOf(b);
+    if (error) throw error;
 
-      if (aIndex !== -1 && bIndex !== -1) return aIndex - bIndex;
-      if (aIndex !== -1) return -1;
-      if (bIndex !== -1) return 1;
-
-      return a.localeCompare(b);
-    });
-  }, [faqs]);
+    return (data ?? []).map((item) => item.name);
+  },
+});
 
   // --------------------------------------------------
   // SUMMARY
@@ -160,7 +173,7 @@ function AdminFAQs() {
   const totalFAQs = faqs.length;
   const publishedCount = faqs.filter((faq) => faq.enabled).length;
   const hiddenCount = totalFAQs - publishedCount;
-  const categoryCount = new Set(faqs.map((faq) => faq.category)).size;
+  const categoryCount = categories.length;
 
   // --------------------------------------------------
   // FILTER FAQs
@@ -216,6 +229,15 @@ function AdminFAQs() {
       if (!payload.question || !payload.answer || !payload.category) {
         throw new Error("Please complete all required fields.");
       }
+
+      const { error: categoryError } = await supabase
+  .from("faq_categories")
+  .upsert(
+    { name: payload.category },
+    { onConflict: "name" }
+  );
+
+if (categoryError) throw categoryError;
 
       if (editingId) {
         const { error } = await supabase
@@ -408,27 +430,152 @@ function AdminFAQs() {
   });
 
   // --------------------------------------------------
+// ADD CATEGORY
+// --------------------------------------------------
+
+const addCategoryMutation = useMutation({
+  mutationFn: async (name: string) => {
+    const categoryName = name.trim();
+
+    if (!categoryName) {
+      throw new Error("Please enter a category name.");
+    }
+
+    if (
+      categories.some(
+        (category) =>
+          category.toLowerCase() === categoryName.toLowerCase()
+      )
+    ) {
+      throw new Error("This category already exists.");
+    }
+
+    const { error } = await supabase
+      .from("faq_categories")
+      .insert({ name: categoryName });
+
+    if (error) throw error;
+
+    return categoryName;
+  },
+
+  onSuccess: async (name) => {
+    await refreshFAQs();
+    setAddCategoryName("");
+    setForm((previous) => ({
+      ...previous,
+      category: name,
+    }));
+    showSuccess(`"${name}" category created successfully.`);
+  },
+
+  onError: showError,
+});
+
+// --------------------------------------------------
+// DELETE CATEGORY
+// --------------------------------------------------
+
+const deleteCategoryMutation = useMutation({
+  mutationFn: async (categoryName: string) => {
+    // Check whether this category still contains FAQs
+    const { count, error: countError } = await supabase
+      .from("faqs")
+      .select("id", { count: "exact", head: true })
+      .eq("category", categoryName);
+
+    if (countError) throw countError;
+
+    if ((count ?? 0) > 0) {
+      throw new Error(
+        "This category still contains FAQs. Move or delete those FAQs before deleting the category."
+      );
+    }
+
+    const { error } = await supabase
+      .from("faq_categories")
+      .delete()
+      .eq("name", categoryName);
+
+    if (error) throw error;
+
+    return categoryName;
+  },
+
+  onSuccess: async (name) => {
+    await refreshFAQs();
+
+    if (form.category === name) {
+      setForm({
+        ...form,
+        category: categories.find((category) => category !== name) || "",
+      });
+    }
+
+    if (categoryFilter === name) {
+      setCategoryFilter("all");
+    }
+
+    showSuccess(`"${name}" category deleted successfully.`);
+  },
+
+  onError: showError,
+});
+
+const handleDeleteCategory = (categoryName: string) => {
+  const count = faqs.filter(
+    (faq) => faq.category === categoryName
+  ).length;
+
+  if (count > 0) {
+    showError(
+      new Error(
+        `This category contains ${count} FAQ(s). Move or delete those FAQs before deleting this category.`
+      )
+    );
+    return;
+  }
+
+  const confirmed = window.confirm(
+    `Are you sure you want to delete the "${categoryName}" category?`
+  );
+
+  if (confirmed) {
+    deleteCategoryMutation.mutate(categoryName);
+  }
+};
+
+  // --------------------------------------------------
   // RENAME CATEGORY
   // --------------------------------------------------
 
   const renameCategoryMutation = useMutation({
     mutationFn: async ({
-      oldName,
-      newName,
-    }: {
-      oldName: string;
-      newName: string;
-    }) => {
-      const { error } = await supabase
-        .from("faqs")
-        .update({
-          category: newName,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("category", oldName);
+  oldName,
+  newName,
+}: {
+  oldName: string;
+  newName: string;
+}) => {
+  // Update existing FAQs first
+  const { error: faqError } = await supabase
+    .from("faqs")
+    .update({
+      category: newName,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("category", oldName);
 
-      if (error) throw error;
-    },
+  if (faqError) throw faqError;
+
+  // Update the category record
+  const { error: categoryError } = await supabase
+    .from("faq_categories")
+    .update({ name: newName })
+    .eq("name", oldName);
+
+  if (categoryError) throw categoryError;
+},
 
     onSuccess: async () => {
       await refreshFAQs();
@@ -858,115 +1005,174 @@ function AdminFAQs() {
         </section>
       )}
 
-      {/* CATEGORY MANAGEMENT */}
-      <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-        <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h2 className="font-semibold text-[#243653]">
-              Category Management
-            </h2>
-            <p className="mt-1 text-sm text-slate-500">
-              Rename categories and organize related questions.
-            </p>
-          </div>
 
-          <span className="text-xs text-slate-400">
-            {categories.length} available categories
-          </span>
-        </div>
+{/* CATEGORY MANAGEMENT */}
+<section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+  <div className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+    <div>
+      <h2 className="font-semibold text-[#243653]">
+        Category Management
+      </h2>
+      <p className="mt-1 text-sm text-slate-500">
+        Add, rename, and delete FAQ categories.
+      </p>
+    </div>
 
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-          {categories.map((category) => {
-            const count = faqs.filter(
-              (faq) => faq.category === category
-            ).length;
+    <span className="text-xs text-slate-400">
+      {categories.length} available categories
+    </span>
+  </div>
 
-            const isRenaming = renamingCategory === category;
+  {/* ADD CATEGORY */}
+  <form
+    onSubmit={(event) => {
+      event.preventDefault();
+      addCategoryMutation.mutate(addCategoryName);
+    }}
+    className="mb-5 flex flex-col gap-2 sm:flex-row"
+  >
+    <input
+      value={addCategoryName}
+      onChange={(event) => setAddCategoryName(event.target.value)}
+      placeholder="Enter a new category name..."
+      className={inputClass}
+      required
+    />
 
-            return (
-              <div
-                key={category}
-                className="rounded-lg border border-slate-200 p-3"
-              >
-                {isRenaming ? (
-                  <div className="space-y-2">
-                    <input
-                      value={newCategoryName}
-                      onChange={(event) =>
-                        setNewCategoryName(event.target.value)
-                      }
-                      onKeyDown={(event) => {
-                        if (event.key === "Enter") {
-                          handleRenameCategory(category);
-                        }
-                        if (event.key === "Escape") {
-                          setRenamingCategory(null);
-                        }
-                      }}
-                      className={inputClass}
-                      autoFocus
-                    />
+    <button
+      type="submit"
+      disabled={addCategoryMutation.isPending}
+      className={`${primaryButton} shrink-0`}
+    >
+      {addCategoryMutation.isPending ? (
+        <LoaderCircle className="h-4 w-4 animate-spin" />
+      ) : (
+        <Plus className="h-4 w-4" />
+      )}
+      Add Category
+    </button>
+  </form>
 
-                    <div className="flex gap-2">
-                      <button
-                        type="button"
-                        onClick={() => handleRenameCategory(category)}
-                        disabled={renameCategoryMutation.isPending}
-                        className={`${primaryButton} flex-1`}
-                      >
-                        <Check className="h-4 w-4" />
-                        Save
-                      </button>
+  {/* CATEGORY LIST */}
+  {categoriesLoading ? (
+    <p className="py-6 text-center text-sm text-slate-400">
+      Loading categories...
+    </p>
+  ) : (
+    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+      {categories.map((category) => {
+        const count = faqs.filter(
+          (faq) => faq.category === category
+        ).length;
 
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setRenamingCategory(null);
-                          setNewCategoryName("");
-                        }}
-                        className={secondaryButton}
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-medium text-slate-800">
-                        {category}
-                      </p>
-                      <p className="mt-1 text-xs text-slate-400">
-                        {count} {count === 1 ? "question" : "questions"}
-                      </p>
-                    </div>
+        const isRenaming = renamingCategory === category;
 
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setRenamingCategory(category);
-                        setNewCategoryName(category);
-                        setNotice("");
-                        setErrorMessage("");
-                      }}
-                      className="shrink-0 rounded-lg p-2 text-slate-400 transition hover:bg-amber-50 hover:text-[#B7792B]"
-                      title="Rename category"
-                    >
-                      <PencilLine className="h-4 w-4" />
-                    </button>
-                  </div>
-                )}
+        return (
+          <div
+            key={category}
+            className="rounded-lg border border-slate-200 p-3"
+          >
+            {isRenaming ? (
+              <div className="space-y-2">
+                <input
+                  value={newCategoryName}
+                  onChange={(event) =>
+                    setNewCategoryName(event.target.value)
+                  }
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") {
+                      handleRenameCategory(category);
+                    }
+
+                    if (event.key === "Escape") {
+                      setRenamingCategory(null);
+                      setNewCategoryName("");
+                    }
+                  }}
+                  className={inputClass}
+                  autoFocus
+                />
+
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleRenameCategory(category)}
+                    disabled={renameCategoryMutation.isPending}
+                    className={`${primaryButton} flex-1`}
+                  >
+                    <Check className="h-4 w-4" />
+                    Save
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setRenamingCategory(null);
+                      setNewCategoryName("");
+                    }}
+                    className={secondaryButton}
+                  >
+                    Cancel
+                  </button>
+                </div>
               </div>
-            );
-          })}
-        </div>
+            ) : (
+              <div className="flex items-center justify-between gap-2">
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-medium text-slate-800">
+                    {category}
+                  </p>
 
-        <p className="mt-4 text-xs leading-5 text-slate-400">
-          Categories are stored through the FAQs assigned to them. A
-          category with no questions is not stored independently in the
-          current database structure.
-        </p>
-      </section>
+                  <p className="mt-1 text-xs text-slate-400">
+                    {count} {count === 1 ? "question" : "questions"}
+                  </p>
+                </div>
+
+                <div className="flex shrink-0 items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setRenamingCategory(category);
+                      setNewCategoryName(category);
+                      setNotice("");
+                      setErrorMessage("");
+                    }}
+                    className="rounded-lg p-2 text-slate-400 transition hover:bg-amber-50 hover:text-[#B7792B]"
+                    title="Rename category"
+                  >
+                    <PencilLine className="h-4 w-4" />
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteCategory(category)}
+                    disabled={
+                      count > 0 || deleteCategoryMutation.isPending
+                    }
+                    className="rounded-lg p-2 text-slate-400 transition hover:bg-red-50 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-30"
+                    title={
+                      count > 0
+                        ? "Move or delete its FAQs before deleting this category"
+                        : "Delete category"
+                    }
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  )}
+
+  <p className="mt-4 text-xs leading-5 text-slate-400">
+    Categories containing FAQs cannot be deleted. Move or delete
+    their questions first.
+  </p>
+</section>
+
 
       {/* FAQ LIST */}
       <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
