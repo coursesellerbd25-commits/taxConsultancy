@@ -16,6 +16,9 @@ import {
   Settings2,
   Sparkles,
   ClipboardList,
+  PanelBottom,
+  FileCheck,
+  ShieldCheck,
 } from "lucide-react";
 
 export const Route = createFileRoute("/admin/content")({
@@ -87,6 +90,30 @@ const contentSections = [
     icon: BookOpen,
     category: "Business Content",
   },
+    {
+    title: "Footer",
+    description:
+      "Manage footer content, business information, navigation links, social media links, and copyright text.",
+    path: "/admin/content/footer",
+    icon: PanelBottom,
+    category: "Others",
+  },
+  {
+    title: "Terms & Conditions",
+    description:
+      "Manage your website terms and conditions, user responsibilities, service limitations, and legal notices.",
+    path: "/admin/content/terms",
+    icon: FileCheck,
+    category: "Others",
+  },
+  {
+    title: "Privacy Policy",
+    description:
+      "Manage your privacy policy, personal data collection, information usage, cookies, and data protection statements.",
+    path: "/admin/content/policy",
+    icon: ShieldCheck,
+    category: "Others",
+  },
 ];
 
 function ContentCard({
@@ -149,6 +176,10 @@ function WebsiteContentPage() {
 
   const businessContent = contentSections.filter(
     (item) => item.category === "Business Content"
+  );
+
+  const otherContent = contentSections.filter(
+    (item) => item.category === "Others"
   );
 
   return (
@@ -259,6 +290,30 @@ function WebsiteContentPage() {
 
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
           {businessContent.map((item) => (
+            <ContentCard key={item.path} item={item} />
+          ))}
+        </div>
+      </section>
+            {/* Others */}
+      <section className="space-y-4">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <h2 className="text-lg font-semibold text-[#243653]">
+              Others
+            </h2>
+
+            <p className="mt-1 text-sm text-slate-500">
+              Manage website footer content and legal information.
+            </p>
+          </div>
+
+          <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600">
+            {otherContent.length} sections
+          </span>
+        </div>
+
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {otherContent.map((item) => (
             <ContentCard key={item.path} item={item} />
           ))}
         </div>
