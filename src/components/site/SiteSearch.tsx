@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useCatalog } from "@/lib/catalog-data";
 import { searchSite, type SearchItem } from "@/lib/site-search";
+import { useSite } from "@/lib/site-data";
 
 function ResultLink({ item, close }: { item: SearchItem; close: () => void }) {
   const props = { className: "block rounded-sm px-4 py-3 hover:bg-accent focus-visible:bg-accent", onClick: close, children: <><span className="block text-sm font-medium text-primary">{item.title}</span><span className="mt-0.5 block truncate text-xs text-muted-foreground">{item.description}</span></> };
@@ -18,6 +19,7 @@ function ResultLink({ item, close }: { item: SearchItem; close: () => void }) {
 }
 
 export function SiteSearch() {
+  const site = useSite();
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
   const catalog = useCatalog();
@@ -27,7 +29,7 @@ export function SiteSearch() {
   return (
     <div className="border-b bg-surface">
       <div className="container-page flex items-center justify-between gap-4 py-2">
-        <span className="hidden text-xs font-medium text-muted-foreground sm:block">Tax · VAT · Corporate Compliance</span>
+        <span className="hidden text-xs font-medium text-muted-foreground sm:block">{site.tagline}</span>
         <div className="relative w-full sm:max-w-md" onBlur={(e) => { if (!e.currentTarget.contains(e.relatedTarget)) setOpen(false); }} onKeyDown={(e) => { if (e.key === "Escape") setOpen(false); }}>
           <div role="search" className="relative">
             <Search aria-hidden className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
