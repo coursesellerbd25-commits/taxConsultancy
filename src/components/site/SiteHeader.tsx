@@ -27,7 +27,7 @@ export function Logo({ onClick }: { onClick?: () => void }) {
         <img
           src={site.logoUrl || "/favicon-tax_processed.png"}
           alt={site.businessName}
-          className="h-12 w-auto max-w-[180px] object-contain"
+          className="h-10 w-auto max-w-[160px] object-contain"
         />
       </span>
       <span className="leading-tight">
