@@ -54,8 +54,7 @@ function Privacy() {
     return (
       <>
         <PageHeader eyebrow="Legal" title="Privacy Policy" />
-
-        <div className="container-page max-w-3xl space-y-8 pt-6 pb-14">
+        <div className="container-page max-w-3xl py-14">
           <p className="text-muted-foreground">
             The Privacy Policy is currently unavailable.
             Please check back later.
@@ -67,15 +66,13 @@ function Privacy() {
 
   return (
     <>
-      <PageHeader eyebrow="Legal" title={policy.title} />
+      {/* Page Header with Introduction */}
+      <PageHeader eyebrow="Legal" title={policy.title}>
+        {policy.intro && <p>{policy.intro}</p>}
+      </PageHeader>
 
+      {/* Policy Sections */}
       <div className="container-page max-w-3xl space-y-8 py-14">
-        {policy.intro && (
-          <p className="text-muted-foreground leading-7">
-            {policy.intro}
-          </p>
-        )}
-
         {policy.sections.map((section, index) => (
           <section
             key={section.id || `${section.heading}-${index}`}
