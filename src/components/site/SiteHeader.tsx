@@ -25,7 +25,7 @@ export function Logo({ onClick }: { onClick?: () => void }) {
     <Link to="/" className="flex items-center gap-2" onClick={onClick}>
       <span className="flex h-9 w-9 items-center justify-center rounded-sm bg-primary text-gold">
         <img
-          src="./favicon-tax_processed.png"
+          src={site.logoUrl || "/favicon-tax_processed.png"}
           alt="Corporate Tax Bangladesh"
           height={32}
           width={32}

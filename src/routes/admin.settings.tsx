@@ -16,6 +16,7 @@ import {
   Loader2,
   Settings2,
   RefreshCw,
+  ImageIcon,
 } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -33,6 +34,7 @@ export const Route = createFileRoute("/admin/settings")({
 type SettingsForm = {
   business_name: string;
   tagline: string;
+  logo_url: string;
   consultant_name: string;
   contact_email: string;
   contact_phone: string;
@@ -46,6 +48,7 @@ type SettingsForm = {
 const initialForm: SettingsForm = {
   business_name: "",
   tagline: "",
+  logo_url: "",
   consultant_name: "",
   contact_email: "",
   contact_phone: "",
@@ -117,6 +120,7 @@ function AdminSettingsPage() {
   const queryClient = useQueryClient();
   const [form, setForm] = useState<SettingsForm>(initialForm);
   const [hasChanges, setHasChanges] = useState(false);
+  const [logoUploading, setLogoUploading] = useState(false);
 
   const settingsQuery = useQuery({
     queryKey: ["admin-settings"],
@@ -138,6 +142,7 @@ function AdminSettingsPage() {
     setForm({
       business_name: settingsQuery.data.business_name ?? "",
       tagline: settingsQuery.data.tagline ?? "",
+      logo_url: settingsQuery.data.logo_url ?? "",
       consultant_name: settingsQuery.data.consultant_name ?? "",
       contact_email: settingsQuery.data.contact_email ?? "",
       contact_phone: settingsQuery.data.contact_phone ?? "",
@@ -156,6 +161,65 @@ function AdminSettingsPage() {
     setHasChanges(true);
   };
 
+  const handleLogoUpload = async (
+  event: React.ChangeEvent<HTMLInputElement>
+) => {
+  const file = event.target.files?.[0];
+
+  if (!file) return;
+
+  if (!file.type.startsWith("image/")) {
+    toast.error("Please select a valid image file.");
+    event.target.value = "";
+    return;
+  }
+
+  if (file.size > 2 * 1024 * 1024) {
+    toast.error("Logo file size must be 2 MB or less.");
+    event.target.value = "";
+    return;
+  }
+
+  setLogoUploading(true);
+
+  try {
+    const fileName = file.name.replace(/[^a-zA-Z0-9.-]/g, "-");
+
+    const filePath = `logo/${Date.now()}-${fileName}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from("homepage-assets")
+      .upload(filePath, file, {
+        cacheControl: "3600",
+        upsert: false,
+      });
+
+    if (uploadError) throw uploadError;
+
+    const { data } = supabase.storage
+      .from("homepage-assets")
+      .getPublicUrl(filePath);
+
+    setForm((current) => ({
+      ...current,
+      logo_url: data.publicUrl,
+    }));
+
+    setHasChanges(true);
+
+    toast.success("Logo uploaded. Click Save Changes to publish it.");
+  } catch (error) {
+    toast.error(
+      error instanceof Error
+        ? error.message
+        : "Unable to upload logo."
+    );
+  } finally {
+    setLogoUploading(false);
+    event.target.value = "";
+  }
+};
+
   const saveMutation = useMutation({
     mutationFn: async () => {
       const email = form.contact_email.trim();
@@ -173,6 +237,7 @@ function AdminSettingsPage() {
         id: 1,
         business_name: form.business_name.trim() || null,
         tagline: form.tagline.trim() || null,
+        logo_url: form.logo_url.trim() || null,
         consultant_name: form.consultant_name.trim() || null,
         contact_email: email || null,
         contact_phone: form.contact_phone.trim() || null,
@@ -209,6 +274,7 @@ function AdminSettingsPage() {
       setForm({
         business_name: settingsQuery.data.business_name ?? "",
         tagline: settingsQuery.data.tagline ?? "",
+        logo_url: settingsQuery.data.logo_url ?? "",
         consultant_name: settingsQuery.data.consultant_name ?? "",
         contact_email: settingsQuery.data.contact_email ?? "",
         contact_phone: settingsQuery.data.contact_phone ?? "",
@@ -373,6 +439,51 @@ function AdminSettingsPage() {
             </FormField>
           </div>
         </div>
+
+<div className="space-y-4 border-t border-slate-100 pt-6">
+  <div>
+    <h3 className="font-semibold text-[#243653]">
+      Website Logo
+    </h3>
+
+    <p className="mt-1 text-xs leading-5 text-slate-500">
+      Upload a transparent PNG logo for your website header.
+      Recommended: square image, maximum 2 MB.
+    </p>
+  </div>
+
+  {form.logo_url && (
+    <div className="flex min-h-32 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 p-6">
+      <img
+        src={form.logo_url}
+        alt="Website logo preview"
+        className="max-h-24 max-w-48 object-contain"
+      />
+    </div>
+  )}
+
+  <FormField
+    label="Upload logo PNG"
+    htmlFor="logo_upload"
+  >
+    <Input
+      id="logo_upload"
+      type="file"
+      accept="image/png"
+      onChange={handleLogoUpload}
+      disabled={logoUploading || saveMutation.isPending}
+      className="h-auto cursor-pointer py-2 file:mr-3 file:rounded-md file:border-0 file:bg-[#243653] file:px-3 file:py-2 file:text-sm file:font-medium file:text-white"
+    />
+  </FormField>
+
+  {logoUploading && (
+    <div className="flex items-center gap-2 text-sm text-slate-500">
+      <Loader2 size={16} className="animate-spin" />
+      Uploading logo...
+    </div>
+  )}
+</div>
+
       </SettingsSection>
 
       {/* Contact information */}

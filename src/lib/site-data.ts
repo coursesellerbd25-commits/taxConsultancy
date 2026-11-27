@@ -2,7 +2,9 @@ import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { services as fallbackServices, site as fallbackSite, type Service } from "@/content/site";
 
-export type SiteInfo = typeof fallbackSite;
+export type SiteInfo = typeof fallbackSite & {
+  logoUrl?: string | null;
+};
 
 /** Public business details and enabled services, edited by the owner in /admin. */
 export const siteDataQuery = queryOptions({
@@ -19,6 +21,7 @@ export const siteDataQuery = queryOptions({
           ...fallbackSite,
           businessName: s.business_name || fallbackSite.businessName,
           tagline: s.tagline || fallbackSite.tagline,
+          logoUrl: s.logo_url || null,
           consultantName: s.consultant_name || null,
           biography: s.biography || null,
           contactEmail: s.contact_email || null,
