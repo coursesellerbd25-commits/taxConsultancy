@@ -55,7 +55,7 @@ function Privacy() {
       <>
         <PageHeader eyebrow="Legal" title="Privacy Policy" />
 
-        <div className="container-page max-w-3xl py-14">
+        <div className="container-page max-w-3xl space-y-8 pt-6 pb-14">
           <p className="text-muted-foreground">
             The Privacy Policy is currently unavailable.
             Please check back later.
