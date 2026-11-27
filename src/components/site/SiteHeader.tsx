@@ -23,13 +23,11 @@ export function Logo({ onClick }: { onClick?: () => void }) {
   const site = useSite();
   return (
     <Link to="/" className="flex shrink-0 items-center gap-3" onClick={onClick}>
-      <span className="flex h-9 w-9 items-center justify-center rounded-sm bg-primary text-gold">
         <img
           src={site.logoUrl || "/favicon-tax_processed.png"}
           alt={site.businessName}
           className="h-11 w-auto max-w-[150px] object-contain"
         />
-      </span>
       <span className="leading-tight">
         <span className="block font-serif text-base font-semibold text-primary">{site.businessName}</span>
         <span className="hidden whitespace-nowrap text-[11px] uppercase tracking-widest text-muted-foreground sm:block xl:hidden 2xl:block">{site.tagline}</span>
