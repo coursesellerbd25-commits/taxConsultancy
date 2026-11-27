@@ -160,7 +160,7 @@ function Home() {
 
           <div className="relative">
             <img
-              src={heroImg}
+              src={content.hero.image_url || heroImg}
               alt="Organized financial documents, a pen and a calculator on a consultant's desk"
               width={1280}
               height={1024}

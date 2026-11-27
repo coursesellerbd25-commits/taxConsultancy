@@ -960,6 +960,46 @@ function HomeContentPage() {
             </Field>
           </div>
 
+          <div className="space-y-4 border-t border-slate-100 pt-6">
+            <div>
+              <h3 className="font-bold text-[#243653]">
+                Homepage Hero Image
+              </h3>
+
+              <p className="mt-1 text-xs leading-5 text-slate-500">
+                Upload a new image to replace the current homepage hero image.
+                Recommended aspect ratio: 4:3. Maximum file size: 5 MB.
+              </p>
+            </div>
+
+              {form.hero.image_url && (
+                <div className="overflow-hidden rounded-xl border border-slate-200">
+                  <img
+                    src={form.hero.image_url}
+                    alt="Homepage hero preview"
+                    className="aspect-[4/3] w-full object-cover"
+                  />
+                </div>
+              )}
+
+              <Field label="Upload a new hero image">
+    <input
+      type="file"
+      accept="image/*"
+      onChange={handleHeroImageUpload}
+      disabled={imageUploading || saveMutation.isPending}
+      className="block w-full rounded-xl border border-slate-200 bg-white p-3 text-sm text-slate-600 file:mr-4 file:rounded-lg file:border-0 file:bg-[#243653] file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-[#1b2a42] disabled:opacity-50"
+    />
+  </Field>
+
+  {imageUploading && (
+    <p className="flex items-center gap-2 text-sm text-slate-500">
+      <Loader2 className="h-4 w-4 animate-spin" />
+      Uploading image...
+    </p>
+  )}
+</div>
+
           <div className="grid gap-5 sm:grid-cols-2">
             <Field label="Serving label">
               <TextInput
