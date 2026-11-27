@@ -76,19 +76,12 @@ function ErrorComponent({ error, reset }: ErrorComponentProps) {
 }
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
-  head: ({ match }) => {
-  const site = match.context.queryClient.getQueryData(siteDataQuery.queryKey)?.site;
-
-  return {
+  head: () => ({
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: site?.businessName || "Corporate Tax Bangladesh" },
-      {
-        name: "description",
-        content:
-          "Practical guidance on income tax, VAT, and tax compliance for individuals and businesses in Bangladesh.",
-      },
+      { title: "Corporate Tax Bangladesh" },
+      { name: "description", content: "Practical guidance on income tax, VAT, and tax compliance for individuals and businesses in Bangladesh." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
@@ -97,27 +90,15 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         rel: "stylesheet",
         href: appCss,
       },
-      {
-        rel: "icon",
-        href: site?.logoUrl || "/favicon-tax_processed.png",
-        type: "image/png",
-      },
-      {
-        rel: "preconnect",
-        href: "https://fonts.googleapis.com",
-      },
-      {
-        rel: "preconnect",
-        href: "https://fonts.gstatic.com",
-        crossOrigin: "anonymous",
-      },
+      { rel: "icon", href: "/favicon-tax.ico", type: "image/x-icon" },
+      { rel: "preconnect", href: "https://fonts.googleapis.com" },
+      { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
       {
         rel: "stylesheet",
         href: "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,500;8..60,600&display=swap",
       },
     ],
-  };
-},
+  }),
   loader: ({ context }) => context.queryClient.ensureQueryData(siteDataQuery),
   shellComponent: RootShell,
   component: RootComponent,
