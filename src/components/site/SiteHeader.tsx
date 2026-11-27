@@ -22,12 +22,12 @@ const linkCls = "whitespace-nowrap rounded-md px-2 py-2 text-sm text-foreground 
 export function Logo({ onClick }: { onClick?: () => void }) {
   const site = useSite();
   return (
-    <Link to="/" className="flex items-center gap-7" onClick={onClick}>
+    <Link to="/" className="flex shrink-0 items-center gap-3" onClick={onClick}>
       <span className="flex h-9 w-9 items-center justify-center rounded-sm bg-primary text-gold">
         <img
           src={site.logoUrl || "/favicon-tax_processed.png"}
           alt={site.businessName}
-          className="h-10 w-auto max-w-[160px] object-contain"
+          className="h-11 w-auto max-w-[150px] object-contain"
         />
       </span>
       <span className="leading-tight">
