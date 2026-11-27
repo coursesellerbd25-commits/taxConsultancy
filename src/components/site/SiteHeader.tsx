@@ -26,9 +26,8 @@ export function Logo({ onClick }: { onClick?: () => void }) {
       <span className="flex h-9 w-9 items-center justify-center rounded-sm bg-primary text-gold">
         <img
           src={site.logoUrl || "/favicon-tax_processed.png"}
-          alt="Corporate Tax Bangladesh"
-          height={32}
-          width={32}
+          alt={site.businessName}
+          className="h-12 w-auto max-w-[180px] object-contain"
         />
       </span>
       <span className="leading-tight">
