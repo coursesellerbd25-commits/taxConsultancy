@@ -90,14 +90,6 @@ const contentSections = [
     icon: BookOpen,
     category: "Business Content",
   },
-    {
-    title: "Footer",
-    description:
-      "Manage footer content, business information, navigation links, social media links, and copyright text.",
-    path: "/admin/content/footer",
-    icon: PanelBottom,
-    category: "Others",
-  },
   {
     title: "Terms & Conditions",
     description:
