@@ -114,6 +114,14 @@ const contentSections = [
     icon: ShieldCheck,
     category: "Others",
   },
+  {
+    title: "Disclaimer",
+    description:
+      "Manage disclaimer statements, limitations of professional advice, informational notices, and website content disclaimers.",
+    path: "/admin/content/disclaimer",
+    icon: FileText,
+    category: "Others",
+  },
 ];
 
 function ContentCard({

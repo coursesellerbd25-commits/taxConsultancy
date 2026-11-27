@@ -43,6 +43,7 @@ type HeroContent = {
   secondary_button: string;
   serving_label: string;
   serving_text: string;
+  image_url: string;
 };
 
 type Statistic = {
@@ -126,6 +127,7 @@ const defaultContent: HomepageContent = {
     secondary_button: "Explore Our Services",
     serving_label: "Serving",
     serving_text: "Individuals · Businesses · Investors",
+    image_url: "",
   },
 
   statistics: [
@@ -447,6 +449,7 @@ function HomeContentPage() {
 
   const [notice, setNotice] = useState("");
   const [validationError, setValidationError] = useState("");
+  const [imageUploading, setImageUploading] = useState(false);
 
   const settingsQuery = useQuery({
     queryKey: ["homepage-content"],
@@ -678,6 +681,66 @@ function HomeContentPage() {
     setNotice("");
     setValidationError("");
   }
+
+  async function handleHeroImageUpload(
+  event: React.ChangeEvent<HTMLInputElement>
+) {
+  const file = event.target.files?.[0];
+
+  if (!file) return;
+
+  if (!file.type.startsWith("image/")) {
+    setValidationError("Please select a valid image file.");
+    event.target.value = "";
+    return;
+  }
+
+  if (file.size > 5 * 1024 * 1024) {
+    setValidationError("Image size must be 5 MB or less.");
+    event.target.value = "";
+    return;
+  }
+
+  setImageUploading(true);
+  clearMessages();
+
+  try {
+    const fileName = file.name.replace(/[^a-zA-Z0-9.-]/g, "-");
+    const filePath = `hero/${Date.now()}-${fileName}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from("homepage-assets")
+      .upload(filePath, file, {
+        cacheControl: "3600",
+        upsert: false,
+      });
+
+    if (uploadError) throw uploadError;
+
+    const { data } = supabase.storage
+      .from("homepage-assets")
+      .getPublicUrl(filePath);
+
+    setForm((previous) => ({
+      ...previous,
+      hero: {
+        ...previous.hero,
+        image_url: data.publicUrl,
+      },
+    }));
+
+    setNotice("Hero image uploaded. Click Save Changes to publish it.");
+  } catch (error) {
+    setValidationError(
+      error instanceof Error
+        ? error.message
+        : "Unable to upload hero image."
+    );
+  } finally {
+    setImageUploading(false);
+    event.target.value = "";
+  }
+}
 
   const saveMutation = useMutation({
     mutationFn: async (values: HomepageContent) => {
